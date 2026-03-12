@@ -1,0 +1,94 @@
+[
+  {
+    "term": "năng lực số",
+    "weight": 1.0
+  },
+  {
+    "term": "chuyển đổi số",
+    "weight": 1.0
+  },
+  {
+    "term": "số hóa",
+    "weight": 1.0
+  },
+  {
+    "term": "công nghệ số",
+    "weight": 1.0
+  },
+  {
+    "term": "kỹ thuật số",
+    "weight": 1.0
+  },
+  {
+    "term": "nền tảng số",
+    "weight": 1.0
+  },
+  {
+    "term": "thương mại điện tử",
+    "weight": 1.0
+  },
+  {
+    "term": "hạ tầng viễn thông",
+    "weight": 1.0
+  },
+  {
+    "term": "hạ tầng công nghệ",
+    "weight": 1.0
+  },
+  {
+    "term": "hạ tầng số",
+    "weight": 1.0
+  },
+  {
+    "term": "thiết bị thông minh",
+    "weight": 1.0
+  },
+  {
+    "term": "thiết bị công nghệ",
+    "weight": 1.0
+  },
+  {
+    "term": "điện thoại",
+    "weight": 1.0
+  },
+  {
+    "term": "internet",
+    "weight": 1.0
+  },
+  {
+    "term": "trí tuệ nhân tạo",
+    "weight": 1.0
+  },
+  {
+    "term": "AI",
+    "weight": 1.0
+  },
+  {
+    "term": "dữ liệu lớn",
+    "weight": 1.0
+  },
+  {
+    "term": "IoT",
+    "weight": 1.0
+  },
+  {
+    "term": "cảm biến",
+    "weight": 1.0
+  },
+  {
+    "term": "blockchain",
+    "weight": 1.0
+  },
+  {
+    "term": "nông nghiệp thông minh",
+    "weight": 1.0
+  },
+  {
+    "term": "chuỗi liên kết",
+    "weight": 1.0
+  },
+  {
+    "term": "truy xuất nguồn gốc",
+    "weight": 1.0
+  }
+]
