@@ -10,9 +10,11 @@ def filter_chunks(chunks):
     lex_embed = LexiconEmbedding(terms)
 
     filtered = []
+    out_filtered = []
 
     for chunk in chunks:
-        if lex_embed.is_relevant(chunk):
+        if lex_embed.is_relevant(chunk, 0.55):
             filtered.append(chunk)
-
-    return filtered
+        else:
+            out_filtered.append(chunk)
+    return filtered, out_filtered
