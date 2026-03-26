@@ -1,4 +1,7 @@
 beautifulsoup4
+trafilatura
 requests
 lxml
 underthesea
+yt-dlp
+openai-whisper
