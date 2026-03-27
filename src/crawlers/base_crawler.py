@@ -10,3 +10,12 @@ class BaseCrawler:
 
     def save(self, path):
         raise NotImplementedError
+    def postprocess(self, text):
+        raise NotImplementedError
+    
+    def run(self, path):
+        raw = self.fetch()
+        parsed = self.parse(raw)
+        # cleaned = self.postprocess(parsed)
+        self.save(parsed, path)
+        return parsed

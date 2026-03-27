@@ -4,4 +4,4 @@ requests
 lxml
 underthesea
 yt-dlp
-openai-whisper
+faster-whisper

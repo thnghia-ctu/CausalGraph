@@ -1,3 +1,5 @@
+from urllib import response
+
 import requests
 import trafilatura
 from bs4 import BeautifulSoup
@@ -8,6 +10,8 @@ class WebCrawler(BaseCrawler):
     def fetch(self):
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(self.url, headers=headers, timeout=10)
+        # FIX encoding tại đây
+        response.encoding = response.apparent_encoding
         response.raise_for_status()
         return response.text
 
@@ -29,5 +33,6 @@ class WebCrawler(BaseCrawler):
         return text.strip()
 
     def save(self, text, path):
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8") as f:            
+            f.write(self.url + "\n\n")
             f.write(text)
