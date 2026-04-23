@@ -16,12 +16,12 @@ for link in links:
 
         if "youtube" in link.lower():
             crawler = YouTubeCrawler(link)
-            text = crawler.run(f"data/raw/youtube_{y_i}_text.txt")
+            text = crawler.run(f"data/raw/youtube/{y_i}_text.txt")
             y_i += 1
             
         else:
             crawler = WebCrawler(link)
-            text = crawler.run(f"data/raw/web_{w_i}_text.txt")
+            text = crawler.run(f"data/raw/web/{w_i}_text.txt")
             w_i += 1
 
     except Exception as e:

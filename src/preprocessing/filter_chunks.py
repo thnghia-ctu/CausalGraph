@@ -1,11 +1,15 @@
 from src.utils.lexicon_manager import LexiconManager
 from src.utils.lexicon_embedding import LexiconEmbedding
+import json
 
 
 def filter_chunks(chunks):
 
-    lex = LexiconManager("configs/lexicon.json")
-    terms = lex.get_terms()
+    # lex = LexiconManager("configs/lexicon.json")
+    # terms = lex.get_terms()
+
+    with open("configs/queries.json", 'r', encoding='utf-8') as f:
+        terms = json.load(f)
 
     lex_embed = LexiconEmbedding(terms)
 

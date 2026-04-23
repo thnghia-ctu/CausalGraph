@@ -1,5 +1,6 @@
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 
 class LexiconEmbedding:
@@ -12,7 +13,9 @@ class LexiconEmbedding:
     def similarity(self, text):
         text_emb = self.model.encode([text])
         sim = cosine_similarity(text_emb, self.embeddings)
-        return sim.max()
+        # return sim.max()
+        top_k = np.sort(sim[0])[-3:]
+        return top_k.mean()
 
     def is_relevant(self, text, threshold=0.6):
         return self.similarity(text) >= threshold
