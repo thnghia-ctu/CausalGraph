@@ -3,5 +3,9 @@ trafilatura
 requests
 lxml
 underthesea
+chonkie
 yt-dlp
 faster-whisper
+sentence-transformers
+bertopic
+pyyaml
