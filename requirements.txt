@@ -9,3 +9,4 @@ faster-whisper
 sentence-transformers
 bertopic
 pyyaml
+openpyxl

@@ -24,7 +24,7 @@ def save_txt(path, data):
             # 2. Kiểm tra nếu data là list thì nối lại bằng dấu xuống dòng
             if isinstance(data, list):
                 # Nối các chunk lại, mỗi chunk cách nhau 2 dấu dòng để dễ đọc
-                text_to_save = "\n\n".join(data)
+                text_to_save = "##\n".join(data)
             else:
                 text_to_save = str(data)
             
@@ -41,3 +41,23 @@ def load_embedding_model(model_name="keepitreal/vietnamese-sbert"):
 def load_config(path):
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+import pandas as pd
+
+def load_xlsx(file_path, sheet_name, column_name):
+    
+    df = pd.read_excel(file_path, sheet_name=sheet_name)
+
+    if column_name not in df.columns:
+        raise ValueError(
+            f"Column '{column_name}' not found. "
+            f"Available columns: {list(df.columns)}"
+        )
+
+    return (
+        df[column_name]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .tolist()
+    )
