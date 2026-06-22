@@ -10,3 +10,7 @@ sentence-transformers
 bertopic
 pyyaml
 openpyxl
+kg_gen
+networkx
+pyvis
+causalgraph

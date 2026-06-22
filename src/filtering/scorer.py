@@ -13,5 +13,5 @@ class Scorer:
         queries_score = emb.similarity_from_embedding(
             item_embedding, self.queries_embeddings
         )
-        score = 2 * (lexicon_score * queries_score) / (lexicon_score + queries_score) if lexicon_score + queries_score != 0 else 0
+        score = 0.3*lexicon_score + 0.7*queries_score
         return score
