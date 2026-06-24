@@ -14,3 +14,5 @@ kg_gen
 networkx
 pyvis
 causalgraph
+py_vncorenlp
+pandas

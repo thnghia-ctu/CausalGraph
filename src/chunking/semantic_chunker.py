@@ -1,8 +1,12 @@
 from chonkie import SemanticChunker as ChonkieSemanticChunker
 
 class SemanticChunker:
-    def __init__(self):
-        self.chunker = ChonkieSemanticChunker()
+    _chunker = None
+    @classmethod
+    def get_chunker(cls):
+        if cls._chunker is None:
+            cls._chunker = ChonkieSemanticChunker()
+        return cls._chunker
 
     def chunk(self, text):
-        return self.chunker.chunk(text)
+        return self.get_chunker().chunk(text)

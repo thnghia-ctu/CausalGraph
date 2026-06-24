@@ -14,3 +14,7 @@ logs/
 # Virtual environment
 venv/
 
+input/
+output/
+resources/
+lib/

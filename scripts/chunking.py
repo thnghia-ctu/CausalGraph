@@ -3,7 +3,7 @@ chunker = SemanticChunker()
 
 from src.utils.helpers import load_txt, save_txt
 chunks = []
-for i in range(1, 19):
+for i in range(3, 4):
     text = load_txt(f"data/raw/web/{i}_text.txt")
     chunks.extend([chunk.text for chunk in chunker.chunk(text)])
 
