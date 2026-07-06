@@ -44,9 +44,11 @@ def load_config(path):
 
 import pandas as pd
 
-def load_xlsx(file_path, sheet_name, column_name):
+def load_xlsx(file_path, sheet_name="Sheet1", column_name=None):
     
     df = pd.read_excel(file_path, sheet_name=sheet_name)
+    if column_name is None:
+        return df
 
     if column_name not in df.columns:
         raise ValueError(

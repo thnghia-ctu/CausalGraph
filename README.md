@@ -6,3 +6,6 @@ python -m scripts.import_lexicon_txt
 
 # Script cào dữ liệu
 python -m scripts.crawl_data
+
+# Script thường dùng
+python -m scripts.extraction

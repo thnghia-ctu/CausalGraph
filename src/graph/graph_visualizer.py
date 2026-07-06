@@ -1,6 +1,6 @@
 from pyvis.network import Network
 
-def visualize_graph(graph):
+def visualize_graph(graph, path):
     net = Network(notebook=True, directed=True)
     for node in graph.nodes():
         net.add_node(node, label=node, title=node)
@@ -8,7 +8,7 @@ def visualize_graph(graph):
         relation = data.get('relation', '')
         score = data.get('score', 0)
         net.add_edge(source, target, title=f"{relation} ({score:.2f})")
-    net.show("graph.html")
+    net.show(path)
     return None
 
 import os

@@ -16,7 +16,7 @@ ROOT_DIR = "D:\CausalGraph"
 def extract_relations(text):
     sens = VnCoreNLPParser.parse_text(text)
     relation_extractor = RelationExtractor()
-    relations = relation_extractor.extract_causal_relation(sens)
+    relations = relation_extractor.test(sens)
     return relations
 
 chunker = SemanticChunker()
@@ -36,11 +36,8 @@ for i in range(1, 19):
 
 relations_dict = [    
     { 
-        "doc_id": i,     
-        "pattern": relation["re"].relationship,
-        "source": relation["re"].source,
-        "trigger": relation["re"].trigger.text,
-        "target": relation["re"].target,
+        "doc_id": i,              
+        "trigger": relation["triggers"],
         "root": relation["root"],
         "sentence": relation["sen"]
     }
@@ -48,8 +45,4 @@ relations_dict = [
 ]
 
 df = pd.DataFrame(relations_dict)
-df.to_csv(f"{ROOT_DIR}/output/relations2.csv", index=False, encoding="utf-8-sig", header=True)
-
-# # Convert dependency parse to DataFrame
-# df = parse_dependency_dict(sens, f"{ROOT_DIR}/output/dependency_parse.csv")
-# print(df)
+df.to_csv(f"{ROOT_DIR}/output/causal_text.csv", index=False, encoding="utf-8-sig", header=True)

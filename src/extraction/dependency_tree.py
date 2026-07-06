@@ -1,0 +1,109 @@
+from src.data_models.trigger import Trigger
+from src.data_models.dependency_token import  Sentence, DependencyToken
+from collections import defaultdict
+
+class DependencyTree:
+    def __init__(self, sentence: Sentence):
+        self.sentence = sentence
+        self.children_map = self._build_children_map()
+        self.token_map = {
+            token.id: token
+            for token in sentence.tokens
+        }
+
+    def _build_children_map(self)-> dict[int, list[DependencyToken]]:
+        children_map = defaultdict(list)
+        for token in self.sentence.tokens:
+            children_map[token.head].append(token)
+        return children_map
+    
+    def get_token(self, token_id: int)-> DependencyToken | None:
+        return self.token_map.get(token_id, None)
+    
+    # Trigger có thể là nhiều token, nên cần tìm head của trigger (token có head không thuộc trigger)
+    def find_trigger_head(self, trigger: Trigger) -> DependencyToken | None:
+        trigger_ids = trigger.token_ids()
+        candidates = [
+            self.token_map[tok_id] for tok_id in trigger_ids if tok_id in self.token_map
+        ]
+        for token in candidates:
+            if token.head is not None and token.head not in trigger_ids:
+                return token
+        return candidates[0] if candidates else None
+
+    def find_parent(self, token: DependencyToken) -> DependencyToken | None:        
+        if token.head == 0:
+            return None
+        return self.token_map.get(token.head)
+    
+    def find_children(self, token: DependencyToken) -> list[DependencyToken]:
+        return self.children_map.get(token.id, [])
+    
+    def find_dependents(
+        self,
+        token: DependencyToken,
+        roles: set[str],
+        pos: set[str] | None = None,
+    ) -> list[DependencyToken]:
+        children = [
+            child for child in self.find_children(token)
+            if child.dep in roles
+        ]
+        if pos is not None:
+            children = [c for c in children if c.pos in pos]
+        return children
+    
+    def collect_subtree(
+        self,
+        token: DependencyToken
+    ) -> list[DependencyToken]:
+        subtree = []
+        def dfs(node: DependencyToken):
+            subtree.append(node)
+            for child in self.find_children(node):
+                dfs(child)
+        dfs(token)
+        return sorted(subtree, key=lambda t: t.id)
+    
+    def collect_subtree_ids(
+        self,
+        token: DependencyToken,
+        exclude: DependencyToken | None = None,
+    ) -> list[int]:
+        """
+        Giống collect_subtree nhưng trả về id, có thể loại trừ 1 nhánh con
+        (VD: lấy subtree của head trigger nhưng bỏ nhánh trigger ra)
+        """
+        exclude_ids = set()
+        if exclude is not None:
+            exclude_ids = self.collect_subtree_ids(exclude)
+
+        subtree = []
+        def dfs(node: DependencyToken):
+            if node.id in exclude_ids:
+                return
+            subtree.append(node)
+            for child in self.find_children(node):
+                dfs(child)
+        dfs(token)
+        return sorted(t.id for t in subtree)
+
+    def surface(self, ids: list[int], skip_punct: bool = True) -> str:
+        """Ghép các token id lại thành câu theo đúng thứ tự."""
+        words = []
+        for i in sorted(ids):
+            tok = self.token_map[i]
+            if skip_punct and tok.pos == "CH":
+                continue
+            words.append(tok.word)
+        return " ".join(words)
+
+    def is_ancestor(self, ancestor: DependencyToken, node: DependencyToken) -> bool:
+        """Kiểm tra ancestor có phải tổ tiên của node không (dùng cho matcher coord)."""
+        cur = node
+        while cur is not None:
+            parent = self.find_parent(cur)
+            if parent is not None and parent.id == ancestor.id:
+                return True
+            cur = parent
+        return False
