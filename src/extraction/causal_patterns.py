@@ -69,13 +69,15 @@ def handle_vmod_chain(trigger: Trigger, tree: DependencyTree) -> dict:
         anchor, roles={"vmod", "dob", "ccomp", "xcomp"}, pos={"V", "A"}
     )
     target_tok = vp_children[0]
+    target_ids = set(tree.collect_subtree_ids(target_tok))         # FIX: set()
 
-    source_ids = tree.collect_subtree_ids(head, exclude=anchor)
-    target_ids = tree.collect_subtree_ids(target_tok)
+    trigger_branch_ids = set(tree.collect_subtree_ids(anchor))     # FIX: set()
+    source_ids = set(tree.collect_subtree_ids(head)) - trigger_branch_ids  # FIX: set() cả 2 bên
+
     return {
         "pattern": "vmod_chain",
-        "source": tree.surface(source_ids),
-        "target": tree.surface(target_ids),
+        "source": tree.surface(sorted(source_ids)),
+        "target": tree.surface(sorted(target_ids)),
     }
 
 
@@ -83,39 +85,53 @@ def handle_vmod_chain(trigger: Trigger, tree: DependencyTree) -> dict:
 def is_coord_conj(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
     head = tree.find_parent(anchor)
-    return anchor.dep == "conj" or (head is not None and head.dep == "coord")
+    if not (anchor.dep == "conj" or (head is not None and head.dep == "coord")):
+        return False
 
-@register_pattern("coord_conj", is_coord_conj)
-def handle_coord_conj(trigger: Trigger, tree: DependencyTree) -> dict:
-    anchor = tree.find_trigger_head(trigger)
-
-    # Đi lên tìm node coord (từ nối "và"/"hoặc"), DỪNG LẠI đúng tại đó
     node = anchor
     while node.dep != "coord":
         parent = tree.find_parent(node)
         if parent is None:
-            break
+            return False
         node = parent
-    coord_node = node if node.dep == "coord" else anchor  # fallback an toàn nếu không tìm thấy
 
-    # SỬA: tìm "conj" ngay dưới coord_node, KHÔNG đi lên thêm 1 tầng nữa
+    trigger_ids = trigger.token_ids()  # đây vốn đã là set, giữ nguyên
+    conj_siblings = tree.find_dependents(node, roles={"conj"})
+    real_targets = [
+        s for s in conj_siblings
+        if not (set(tree.collect_subtree_ids(s)) & trigger_ids)   # FIX: bọc set()
+    ]
+    return len(real_targets) > 0
+
+
+@register_pattern("coord_conj", is_coord_conj)
+def handle_coord_conj(trigger: Trigger, tree: DependencyTree) -> dict:
+    anchor = tree.find_trigger_head(trigger)
+    node = anchor
+    while node.dep != "coord":
+        node = tree.find_parent(node)
+    coord_node = node
+
+    trigger_ids = trigger.token_ids()
     conj_siblings = tree.find_dependents(coord_node, roles={"conj"})
+    target_siblings = [
+        s for s in conj_siblings
+        if not (set(tree.collect_subtree_ids(s)) & trigger_ids)   # FIX
+    ]
 
-    target_ids = []
-    for sib in conj_siblings:
-        target_ids += tree.collect_subtree_ids(sib)
+    target_ids = set()
+    for sib in target_siblings:
+        target_ids |= set(tree.collect_subtree_ids(sib))          # FIX: set(), dùng |=
 
-    # source = mọi thứ dưới cha của coord_node, TRỪ đi nhánh coord vừa lấy làm target
     grandparent = tree.find_parent(coord_node)
-    if grandparent is not None:
-        source_ids = tree.collect_subtree_ids(grandparent, exclude=coord_node)
-    else:
-        source_ids = []
+    source_ids = set(tree.collect_subtree_ids(grandparent, exclude=coord_node)) if grandparent else set()  # FIX
+    source_ids -= target_ids
+    source_ids -= trigger_ids
 
     return {
         "pattern": "coord_conj",
-        "source": tree.surface(source_ids),
-        "target": tree.surface(target_ids),
+        "source": tree.surface(sorted(source_ids)),
+        "target": tree.surface(sorted(target_ids)),
     }
 
 

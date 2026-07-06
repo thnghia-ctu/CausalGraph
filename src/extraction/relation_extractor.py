@@ -92,6 +92,9 @@ class RelationExtractor:
             if triggers:
                 for trigger in triggers:
                     tree = DependencyTree(sentence)
+                    anchor = tree.find_trigger_head(trigger)
+                    if anchor.pos not in {"V", "A"}:
+                        continue
                     pattern_name = classify_structure(trigger, tree)
                     handler = PATTERN_HANDLERS.get(pattern_name, handle_unmatched)
                     result = handler(trigger, tree)

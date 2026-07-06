@@ -48,7 +48,7 @@ relations_dict = [
 ]
 
 df = pd.DataFrame(relations_dict)
-df.to_csv(f"{ROOT_DIR}/output/relations2.csv", index=False, encoding="utf-8-sig", header=True)
+df.to_csv(f"{ROOT_DIR}/output/relations3.csv", index=False, encoding="utf-8-sig", header=True)
 
 # # Convert dependency parse to DataFrame
 # df = parse_dependency_dict(sens, f"{ROOT_DIR}/output/dependency_parse.csv")
