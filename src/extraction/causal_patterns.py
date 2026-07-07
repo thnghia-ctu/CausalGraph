@@ -31,14 +31,17 @@ def classify_structure(trigger: Trigger, tree: DependencyTree) -> str:
 def is_direct_svo(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
     has_sub = len(tree.find_dependents(anchor, roles={"sub", "nsubj"})) > 0
-    has_obj = len(tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob"})) > 0
+    has_obj = len(
+                tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob"})
+                or tree.find_dependents(anchor, roles={"vmod"}, pos={"V", "A"})
+                ) > 0
     return has_sub and has_obj
 
 @register_pattern("direct_svo", is_direct_svo)
 def handle_direct_svo(trigger: Trigger, tree: DependencyTree) -> dict:
     anchor = tree.find_trigger_head(trigger)
     source_tok = tree.find_dependents(anchor, roles={"sub", "nsubj"})[0]
-    target_tok = tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob"})[0]
+    target_tok = tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod"})[0]
 
     source_ids = tree.collect_subtree_ids(source_tok)
     target_ids = tree.collect_subtree_ids(target_tok)
@@ -52,7 +55,7 @@ def handle_direct_svo(trigger: Trigger, tree: DependencyTree) -> dict:
 def is_vmod_chain(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
     head = tree.find_parent(anchor)
-    if head is None or anchor.dep not in {"vmod", "dep"}:
+    if head is None or head.dep == "prp" or anchor.dep not in {"vmod", "dep"}:
         return False
     if head.pos not in {"V", "A"}:
         return False
@@ -80,8 +83,30 @@ def handle_vmod_chain(trigger: Trigger, tree: DependencyTree) -> dict:
         "target": tree.surface(sorted(target_ids)),
     }
 
+# --- Pattern C: purpose_clause ---
+def is_purpose_clause(trigger: Trigger, tree: DependencyTree) -> bool:
+    anchor = tree.find_trigger_head(trigger)
+    head = tree.find_parent(anchor)
+    if head is None or head.dep != "prp" or anchor.dep not in {"vmod", "dep"}:
+        return False
+    return True
 
-# --- Pattern C: coord_conj ---
+@register_pattern("purpose_clause", is_purpose_clause)
+def handle_purpose_clause(trigger: Trigger, tree: DependencyTree) -> dict:
+    anchor = tree.find_trigger_head(trigger)
+    head = tree.find_parent(anchor)
+    source_tok = tree.find_parent(head)
+    target_tok = tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod"})[0]
+
+    source_ids = tree.collect_subtree_ids(source_tok, exclude=head)
+    target_ids = tree.collect_subtree_ids(target_tok)
+    return {
+        "pattern": "purpose_clause",
+        "source": tree.surface(source_ids),
+        "target": tree.surface(target_ids),
+    }
+
+# --- Pattern D: coord_conj ---
 def is_coord_conj(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
     head = tree.find_parent(anchor)
