@@ -9,6 +9,7 @@ import pandas as pd
 from src.chunking.semantic_chunker import SemanticChunker
 from src.filtering.semantic_filter import filter_chunks
 from src.utils.helpers import load_txt, save_txt
+import traceback
 
 ROOT_DIR = "D:\CausalGraph"
 
@@ -32,6 +33,7 @@ for i in range(1, 19):
         extracted_relations[i]=extract_relations(filter_text)
     except Exception as e:
         print(f"Error processing file {i}: {e}")
+        traceback.print_exc()
         continue
 
 relations_dict = [    
@@ -48,7 +50,7 @@ relations_dict = [
 ]
 
 df = pd.DataFrame(relations_dict)
-df.to_csv(f"{ROOT_DIR}/output/relations3.csv", index=False, encoding="utf-8-sig", header=True)
+df.to_csv(f"{ROOT_DIR}/output/relations1.csv", index=False, encoding="utf-8-sig", header=True)
 
 # # Convert dependency parse to DataFrame
 # df = parse_dependency_dict(sens, f"{ROOT_DIR}/output/dependency_parse.csv")
