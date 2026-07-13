@@ -1,5 +1,8 @@
 import py_vncorenlp
+
+from configs.config import BASE_DIR
 from src.data_models.dependency_token import DependencyToken, Sentence
+
 
 class VnCoreNLPParser:
 
@@ -7,11 +10,11 @@ class VnCoreNLPParser:
 
     @classmethod
     def get_pipeline(cls):
-
         if cls._pipeline is None:
-
             cls._pipeline = py_vncorenlp.VnCoreNLP(
-                save_dir=r"D:\CausalGraph\resources\vncorenlp"
+                save_dir=str(
+                    BASE_DIR / "resources" / "third_party" / "vncorenlp"
+                )
             )
 
         return cls._pipeline

@@ -13,6 +13,6 @@ openpyxl
 kg_gen
 networkx
 pyvis
-causalgraph
+# causalgraph
 py_vncorenlp
 pandas
