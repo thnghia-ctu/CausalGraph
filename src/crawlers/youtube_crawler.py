@@ -8,6 +8,7 @@ from .base_crawler import BaseCrawler
 
 
 class YouTubeCrawler(BaseCrawler):
+    source_type = "youtube"
     _model = None
 
     def __init__(self, url):

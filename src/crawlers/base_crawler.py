@@ -16,6 +16,6 @@ class BaseCrawler:
     def run(self, path):
         raw = self.fetch()
         parsed = self.parse(raw)
-        # cleaned = self.postprocess(parsed)
-        self.save(parsed, path)
-        return parsed
+        cleaned = self.postprocess(parsed)
+        self.save(cleaned, path)
+        return cleaned
