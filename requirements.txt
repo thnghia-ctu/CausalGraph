@@ -3,7 +3,7 @@ trafilatura
 requests
 lxml
 underthesea
-chonkie
+chonkie[model2vec]
 yt-dlp
 faster-whisper
 sentence-transformers

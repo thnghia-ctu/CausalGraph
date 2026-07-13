@@ -6,11 +6,11 @@ from src.data_models.dependency_token import parse_dependency_dict
 import pandas as pd
 import re
 
-text=load_txt(f"{BASE_DIR}/input/input.txt").strip()
+# text=load_txt(f"{BASE_DIR}/input/input.txt").strip()
 # text=re.sub(r'\s+', ' ', text)
 # text = text.replace("\ufeff", "")
 # text = text.replace("_", " ")
-# text="Thiếu hạ tầng , thiếu kỹ năng , thiếu nguồn lực và thiếu kết nối thị trường đang khiến họ loay hoay giữa làn sóng công nghệ."
+text="Thiếu hạ tầng , thiếu kỹ năng , thiếu nguồn lực và thiếu kết nối thị trường đang khiến họ loay hoay giữa làn sóng công nghệ."
 sentences = VnCoreNLPParser.parse_text(text)
 parse_dependency_dict(sentences, f"{BASE_DIR}/output/test_out.csv")
 extractor = RelationExtractor()
