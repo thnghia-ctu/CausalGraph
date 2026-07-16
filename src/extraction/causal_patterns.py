@@ -28,8 +28,11 @@ def classify_structure(trigger: Trigger, tree: DependencyTree) -> str:
     return "unmatched"
 
 # --- Pattern A: direct_svo ---
+# Cấu trúc: source + trigger (trực tiếp kết nối s vs t) + target.
 def is_direct_svo(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
+    if anchor is None:
+        return False
     has_sub = len(tree.find_dependents(anchor, roles={"sub", "nsubj"})) > 0
     has_obj = len(
                 tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob"})
@@ -52,8 +55,11 @@ def handle_direct_svo(trigger: Trigger, tree: DependencyTree) -> dict:
     }
 
 # --- Pattern B: vmod_chain ---
+# Cấu trúc: source + head(V) + trigger dạng vmod/dep + cụm V/A (target).
 def is_vmod_chain(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
+    if anchor is None:
+        return False
     head = tree.find_parent(anchor)
     if head is None or head.dep == "prp" or anchor.dep not in {"vmod", "dep"}:
         return False
@@ -84,8 +90,11 @@ def handle_vmod_chain(trigger: Trigger, tree: DependencyTree) -> dict:
     }
 
 # --- Pattern C: purpose_clause ---
+# Cấu trúc: mệnh đề chính (source) + thành phần mục đích (nhằm, để, với_mục_đích) + trigger + target.
 def is_purpose_clause(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
+    if anchor is None:
+        return False
     head = tree.find_parent(anchor)
     if head is None or head.dep != "prp" or anchor.dep not in {"vmod", "dep"}:
         return False
@@ -96,10 +105,12 @@ def handle_purpose_clause(trigger: Trigger, tree: DependencyTree) -> dict:
     anchor = tree.find_trigger_head(trigger)
     head = tree.find_parent(anchor)
     source_tok = tree.find_parent(head)
-    target_tok = tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod"})[0]
+    targets = tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod"})
+   
+    target_tok = targets[0] if targets else None
 
     source_ids = tree.collect_subtree_ids(source_tok, exclude=head)
-    target_ids = tree.collect_subtree_ids(target_tok)
+    target_ids = tree.collect_subtree_ids(target_tok) if target_tok else []
     return {
         "pattern": "purpose_clause",
         "source": tree.surface(source_ids),
@@ -107,6 +118,7 @@ def handle_purpose_clause(trigger: Trigger, tree: DependencyTree) -> dict:
     }
 
 # --- Pattern D: coord_conj ---
+# Cấu trúc: source + cụm đẳng lập chứa trigger và các vế target.
 def is_coord_conj(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
     head = tree.find_parent(anchor)
@@ -161,6 +173,7 @@ def handle_coord_conj(trigger: Trigger, tree: DependencyTree) -> dict:
 
 
 # --- Pattern fallback: unmatched ---
+# Cấu trúc: không thuộc các dạng câu đã định nghĩa ở trên.
 def handle_unmatched(trigger: Trigger, tree: DependencyTree) -> dict:
     return {
         "pattern": "unmatched",
