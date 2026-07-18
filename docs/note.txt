@@ -1,0 +1,2 @@
+Cần thêm pattern câu bị lao_động
+Trong câu "hạn_chế rủi_ro khi tham_gia môi_trường số", việc cắt bỏ vế "khi" gây mất thông tin

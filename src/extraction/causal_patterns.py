@@ -1,3 +1,4 @@
+from src.data_models.factor import Factor
 from src.data_models.trigger import Trigger
 from src.data_models.dependency_token import DependencyToken
 from src.extraction.dependency_tree import DependencyTree
@@ -97,7 +98,7 @@ def handle_vmod_chain(trigger: Trigger, tree: DependencyTree) -> dict:
         }
         source_ids -= trigger.token_ids()
         source_ids = tree.strip_edge_punct(source_ids)
-        source = tree.surface(sorted(source_ids)) or None
+        source = Factor(text=tree.surface(source_ids), token_ids=list(sorted(source_ids))) if source_ids else None
 
     return {"pattern": "vmod_chain", "source": source, "target": target}
 
@@ -125,8 +126,8 @@ def handle_purpose_clause(trigger: Trigger, tree: DependencyTree) -> dict:
     target_ids = tree.collect_subtree_ids(target_tok) if target_tok else []
     return {
         "pattern": "purpose_clause",
-        "source": tree.surface(source_ids),
-        "target": tree.surface(target_ids),
+        "source": Factor(text=tree.surface(source_ids), token_ids=list(sorted(source_ids))) if source_ids else None,
+        "target":  Factor(text=tree.surface(target_ids), token_ids=list(sorted(target_ids))) if target_ids else None,
     }
 
 # --- Pattern D: coord_conj ---
@@ -179,8 +180,8 @@ def handle_coord_conj(trigger: Trigger, tree: DependencyTree) -> dict:
 
     return {
         "pattern": "coord_conj",
-        "source": tree.surface(sorted(source_ids)),
-        "target": tree.surface(sorted(target_ids)),
+        "source": Factor(text=tree.surface(source_ids), token_ids=list(sorted(source_ids))) if source_ids else None,
+        "target":  Factor(text=tree.surface(target_ids), token_ids=list(sorted(target_ids))) if target_ids else None,
     }
 
 

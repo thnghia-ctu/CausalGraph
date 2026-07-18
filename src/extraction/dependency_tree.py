@@ -1,3 +1,4 @@
+from src.data_models.factor import Factor
 from src.data_models.trigger import Trigger
 from src.data_models.dependency_token import  Sentence, DependencyToken
 from collections import defaultdict
@@ -119,7 +120,7 @@ class DependencyTree:
     def extract_source(
         self,
         anchor: DependencyToken | None,
-    ) -> str | None:
+    ) -> Factor | None:
         """Trích xuất các token source có ID nhỏ hơn ID của anchor."""
         if anchor is None:
             return None
@@ -130,14 +131,14 @@ class DependencyTree:
             for source in sources
             for token_id in self.collect_subtree_ids(source)
             if token_id < anchor.id
-        }
+        }        
 
-        return self.surface_range(min(source_ids), max(source_ids)) if source_ids else None
+        return Factor(text=self.surface_range(min(source_ids), max(source_ids)), token_ids=list(sorted(source_ids))) if source_ids else None
 
     def extract_target(
         self,
         anchor: DependencyToken | None,
-    ) -> str | None:
+    ) -> Factor | None:
         """Trích xuất các token target có ID lớn hơn ID của anchor."""
         if anchor is None:
             return None
@@ -154,7 +155,7 @@ class DependencyTree:
             if token_id > anchor.id
         }
 
-        return self.surface_range(min(target_ids), max(target_ids)) if target_ids else None
+        return Factor(text=self.surface_range(min(target_ids), max(target_ids)), token_ids=list(sorted(target_ids))) if target_ids else None
 
     def strip_edge_punct(self, ids: set[int] | list[int]) -> set[int]:
         """Bỏ token dấu câu ở đầu/cuối cụm, giữ dấu câu bên trong.
