@@ -86,18 +86,17 @@ def handle_vmod_chain(trigger: Trigger, tree: DependencyTree) -> dict:
 
     # SOURCE, lớp 1: chủ ngữ tường minh của head. Chính xác nhất -> ưu tiên.
     # Chỉ lấy nhánh sub nên không dính vị ngữ, trạng ngữ, dấu câu (26/60 case).
-    source = tree.extract_source(head)
+    source_candidate = tree.extract_source(head)
 
-    # SOURCE, lớp 2: head không có sub tường minh (34/60): chủ ngữ là mệnh đề
-    # động từ ("Sử_dụng robot này"), head là root-tiêu-đề, hoặc head là trợ ĐT.
-    # Lùi về subtree(head) giới hạn phần đứng TRƯỚC trigger.
-    if source is None:
-        source_ids = {
-            i for i in tree.collect_subtree_ids(head, exclude=anchor)
-            if i < anchor.id
-        }
-        source_ids -= trigger.token_ids()
-        source_ids = tree.strip_edge_punct(source_ids)
+    source_ids = {
+        i for i in tree.collect_subtree_ids(head, exclude=anchor)
+        if i < anchor.id
+    }
+    source_ids -= trigger.token_ids()
+    source_ids = tree.strip_edge_punct(source_ids)
+    if tree.get_token(max(source_ids)).pos not in {"V", "A"} and source_candidate is not None:
+        source = source_candidate
+    else:
         source = Factor(text=tree.surface(source_ids), token_ids=list(sorted(source_ids))) if source_ids else None
 
     return {"pattern": "vmod_chain", "source": source, "target": target}

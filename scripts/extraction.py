@@ -39,17 +39,23 @@ relations_dict = [
     { 
         "doc_id": i,     
         "pattern": relation["re"].relationship,
-        "source": relation["re"].source,
+        "source": (
+            relation["re"].source.text
+            if relation["re"].source is not None else None
+        ),
         "trigger": relation["re"].trigger.text,
-        "target": relation["re"].target,
+        "target": (
+            relation["re"].target.text
+            if relation["re"].target is not None else None
+        ),
         "root": relation["root"],
         "sentence": relation["sen"]
     }
-    for i, relations in extracted_relations.items() for relation in relations
+    for i, relations in extracted_relations.items() for relation in relations #if relation["re"].source is not None and relation["re"].target is not None
 ]
 
 df = pd.DataFrame(relations_dict)
-df.to_csv(f"{BASE_DIR}/output/relations.csv", index=False, encoding="utf-8-sig", header=True)
+df.to_csv(f"{BASE_DIR}/output/relations2.csv", index=False, encoding="utf-8-sig", header=True)
 
 # # Convert dependency parse to DataFrame
 # df = parse_dependency_dict(sens, f"{BASE_DIR}/output/dependency_parse.csv")

@@ -1,2 +1,9 @@
 Cần thêm pattern câu bị lao_động
 Trong câu "hạn_chế rủi_ro khi tham_gia môi_trường số", việc cắt bỏ vế "khi" gây mất thông tin
+Xử lý phủ định
+
+Ba câu hỏi khó nhất mình sẽ hỏi là:
+1. Làm thế nào chứng minh rule không overfit trên tập câu bạn đã xem và sửa nhiều lần?
+2. Tại sao một relation được coi là đúng, và ai xác nhận ground truth?
+3. Đóng góp mới của luận văn khác gì so với một pipeline heuristic sử dụng VnCoreNLP?
+Nếu bạn trả lời tốt ba câu này bằng dữ liệu thực nghiệm, luận văn có thể tiến từ mức 7,0 lên 8,0–8,5 mà không cần làm hệ thống phức tạp hơn quá nhiều.

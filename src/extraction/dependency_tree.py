@@ -87,7 +87,7 @@ class DependencyTree:
 
         subtree = []
         def dfs(node: DependencyToken):
-            if node.id in exclude_ids or node.dep in {"prp", "mnr"}:
+            if node.id in exclude_ids or node.dep == "prp" or (node.dep == "mnr" and node.pos not in {"V", "A"}):
                 return
             subtree.append(node)
             for child in self.find_children(node):
@@ -143,19 +143,47 @@ class DependencyTree:
         if anchor is None:
             return None
 
-        targets = self.find_dependents(
+        primary_targets = self.find_dependents(
             anchor,
-            roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod", "coord"},
+            roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod", "coord", "mnr"},
             excepted_pos={"C", "E", "R", "T", "X"},
         )
         target_ids = {
             token_id
-            for target in targets
+            for target in primary_targets
             for token_id in self.collect_subtree_ids(target)
             if token_id > anchor.id
         }
 
-        return Factor(text=self.surface_range(min(target_ids), max(target_ids)), token_ids=list(sorted(target_ids))) if target_ids else None
+        # ``tmp`` chỉ bổ sung ngữ cảnh cho một target chính đã tồn tại;
+        # nó không được tự tạo target và làm thay đổi pattern classification.
+        if not target_ids:
+            return None
+
+        target_end = max(target_ids)
+        temporal_contexts = sorted(
+            self.find_dependents(anchor, roles={"tmp"}),
+            key=lambda token: token.id,
+        )
+        for context in temporal_contexts:
+            if context.id != target_end + 1:
+                continue
+
+            context_ids = {
+                token_id
+                for token_id in self.collect_subtree_ids(context)
+                if token_id > anchor.id
+            }
+            if not context_ids:
+                continue
+
+            target_ids.update(context_ids)
+            target_end = max(target_ids)
+
+        return Factor(
+            text=self.surface_range(min(target_ids), max(target_ids)),
+            token_ids=sorted(target_ids),
+        )
 
     def strip_edge_punct(self, ids: set[int] | list[int]) -> set[int]:
         """Bỏ token dấu câu ở đầu/cuối cụm, giữ dấu câu bên trong.
