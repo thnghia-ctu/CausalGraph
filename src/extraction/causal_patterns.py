@@ -43,51 +43,63 @@ def is_direct_svo(trigger: Trigger, tree: DependencyTree) -> bool:
 @register_pattern("direct_svo", is_direct_svo)
 def handle_direct_svo(trigger: Trigger, tree: DependencyTree) -> dict:
     anchor = tree.find_trigger_head(trigger)
-    source_tok = tree.find_dependents(anchor, roles={"sub", "nsubj"})[0]
-    target_tok = tree.find_dependents(anchor, roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod"})[0]
-
-    source_ids = tree.collect_subtree_ids(source_tok)
-    target_ids = tree.collect_subtree_ids(target_tok)
     return {
         "pattern": "direct_svo",
-        "source": tree.surface(source_ids),
-        "target": tree.surface(target_ids),
+        "source": tree.extract_source(anchor),
+        "target": tree.extract_target(anchor),
     }
 
 # --- Pattern B: vmod_chain ---
-# Cấu trúc: source + head(V) + trigger dạng vmod/dep + cụm V/A (target).
+# Cấu trúc: source + head(V/A) + trigger dạng vmod/dep + cụm V/A (target).
+# Bao phủ cả: "giúp + NP + VP", target phối hợp bằng "và", và head là root-tiêu-đề.
+
+# Cấu trúc: source + head(V/A) + trigger dạng vmod/dep + cụm V/A (target).
+# Bao phủ cả: "giúp + NP + VP", target phối hợp bằng "và", và head là root-tiêu-đề.
 def is_vmod_chain(trigger: Trigger, tree: DependencyTree) -> bool:
     anchor = tree.find_trigger_head(trigger)
     if anchor is None:
         return False
+
     head = tree.find_parent(anchor)
+    # head.dep == "prp" -> nhường cho purpose_clause (loại trừ lẫn nhau).
     if head is None or head.dep == "prp" or anchor.dep not in {"vmod", "dep"}:
         return False
     if head.pos not in {"V", "A"}:
         return False
-    vp_children = tree.find_dependents(
-        anchor, roles={"vmod", "dob", "ccomp", "xcomp"}, pos={"V", "A"}
-    )
-    return len(vp_children) > 0
+
+    # Dùng chính extract_target() để matcher và handler không bao giờ lệch nhau.
+    return tree.extract_target(anchor) is not None
 
 @register_pattern("vmod_chain", is_vmod_chain)
 def handle_vmod_chain(trigger: Trigger, tree: DependencyTree) -> dict:
     anchor = tree.find_trigger_head(trigger)
+    if anchor is None:
+        return {"pattern": "vmod_chain", "source": None, "target": None}
+
     head = tree.find_parent(anchor)
-    vp_children = tree.find_dependents(
-        anchor, roles={"vmod", "dob", "ccomp", "xcomp"}, pos={"V", "A"}
-    )
-    target_tok = vp_children[0]
-    target_ids = set(tree.collect_subtree_ids(target_tok))         # FIX: set()
+    if head is None:
+        return {"pattern": "vmod_chain", "source": None, "target": None}
 
-    trigger_branch_ids = set(tree.collect_subtree_ids(anchor))     # FIX: set()
-    source_ids = set(tree.collect_subtree_ids(head)) - trigger_branch_ids  # FIX: set() cả 2 bên
+    # TARGET: tái sử dụng nguyên vẹn (đã xử lý coord "và", dob danh từ, gom mọi dependent).
+    target = tree.extract_target(anchor)
 
-    return {
-        "pattern": "vmod_chain",
-        "source": tree.surface(sorted(source_ids)),
-        "target": tree.surface(sorted(target_ids)),
-    }
+    # SOURCE, lớp 1: chủ ngữ tường minh của head. Chính xác nhất -> ưu tiên.
+    # Chỉ lấy nhánh sub nên không dính vị ngữ, trạng ngữ, dấu câu (26/60 case).
+    source = tree.extract_source(head)
+
+    # SOURCE, lớp 2: head không có sub tường minh (34/60): chủ ngữ là mệnh đề
+    # động từ ("Sử_dụng robot này"), head là root-tiêu-đề, hoặc head là trợ ĐT.
+    # Lùi về subtree(head) giới hạn phần đứng TRƯỚC trigger.
+    if source is None:
+        source_ids = {
+            i for i in tree.collect_subtree_ids(head, exclude=anchor)
+            if i < anchor.id
+        }
+        source_ids -= trigger.token_ids()
+        source_ids = tree.strip_edge_punct(source_ids)
+        source = tree.surface(sorted(source_ids)) or None
+
+    return {"pattern": "vmod_chain", "source": source, "target": target}
 
 # --- Pattern C: purpose_clause ---
 # Cấu trúc: mệnh đề chính (source) + thành phần mục đích (nhằm, để, với_mục_đích) + trigger + target.

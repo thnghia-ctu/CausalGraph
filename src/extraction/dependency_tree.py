@@ -44,15 +44,21 @@ class DependencyTree:
         token: DependencyToken,
         roles: set[str],
         pos: set[str] | None = None,
+        excepted_pos: set[str] | None = None,
     ) -> list[DependencyToken]:
-        children = [
-            child for child in self.find_children(token)
-            if child.dep in roles
-        ]
-        if pos is not None:
-            children = [c for c in children if c.pos in pos]
+        children = []
+        for child in self.find_children(token):
+            if child.dep in roles:
+                if pos is not None and child.pos not in pos:
+                    continue
+                if excepted_pos is not None and child.pos in excepted_pos:
+                    continue
+                if child.dep in {"coord"} and child.word not in {"và"}:
+                    continue
+
+                children.append(child)
         return children
-    
+
     def collect_subtree(
         self,
         token: DependencyToken
@@ -80,7 +86,7 @@ class DependencyTree:
 
         subtree = []
         def dfs(node: DependencyToken):
-            if node.id in exclude_ids:
+            if node.id in exclude_ids or node.dep in {"prp", "mnr"}:
                 return
             subtree.append(node)
             for child in self.find_children(node):
@@ -88,7 +94,7 @@ class DependencyTree:
         dfs(token)
         return sorted(t.id for t in subtree)
 
-    def surface(self, ids: list[int], skip_punct: bool = True) -> str:
+    def surface(self, ids: list[int], skip_punct: bool = False) -> str:
         """Ghép các token id lại thành câu theo đúng thứ tự."""
         words = []
         for i in sorted(ids):
@@ -98,12 +104,66 @@ class DependencyTree:
             words.append(tok.word)
         return " ".join(words)
 
-    def is_ancestor(self, ancestor: DependencyToken, node: DependencyToken) -> bool:
-        """Kiểm tra ancestor có phải tổ tiên của node không (dùng cho matcher coord)."""
-        cur = node
-        while cur is not None:
-            parent = self.find_parent(cur)
-            if parent is not None and parent.id == ancestor.id:
-                return True
-            cur = parent
-        return False
+    def surface_range(
+        self,
+        start_id: int,
+        end_id: int,
+        skip_punct: bool = False,
+    ) -> str:
+        """Ghép các token trong khoảng ID đóng ``[start_id, end_id]``."""
+        if start_id > end_id:
+            raise ValueError("start_id must be less than or equal to end_id")
+
+        return self.surface(list(range(start_id, end_id + 1)), skip_punct)
+
+    def extract_source(
+        self,
+        anchor: DependencyToken | None,
+    ) -> str | None:
+        """Trích xuất các token source có ID nhỏ hơn ID của anchor."""
+        if anchor is None:
+            return None
+
+        sources = self.find_dependents(anchor, roles={"sub", "nsubj"})
+        source_ids = {
+            token_id
+            for source in sources
+            for token_id in self.collect_subtree_ids(source)
+            if token_id < anchor.id
+        }
+
+        return self.surface_range(min(source_ids), max(source_ids)) if source_ids else None
+
+    def extract_target(
+        self,
+        anchor: DependencyToken | None,
+    ) -> str | None:
+        """Trích xuất các token target có ID lớn hơn ID của anchor."""
+        if anchor is None:
+            return None
+
+        targets = self.find_dependents(
+            anchor,
+            roles={"dob", "obj", "ccomp", "xcomp", "pob", "vmod", "coord"},
+            excepted_pos={"C", "E", "R", "T", "X"},
+        )
+        target_ids = {
+            token_id
+            for target in targets
+            for token_id in self.collect_subtree_ids(target)
+            if token_id > anchor.id
+        }
+
+        return self.surface_range(min(target_ids), max(target_ids)) if target_ids else None
+
+    def strip_edge_punct(self, ids: set[int] | list[int]) -> set[int]:
+        """Bỏ token dấu câu ở đầu/cuối cụm, giữ dấu câu bên trong.
+        Cần cho vmod_chain: subtree của head luôn kéo theo 'punct' treo vào root.
+        """
+        ordered = sorted(ids)
+        start, end = 0, len(ordered) - 1
+        while start <= end and self.token_map[ordered[start]].pos == "CH":
+            start += 1
+        while end >= start and self.token_map[ordered[end]].pos == "CH":
+            end -= 1
+        return set(ordered[start:end + 1])
