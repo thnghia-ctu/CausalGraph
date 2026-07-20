@@ -3,10 +3,12 @@ from configs.config import BASE_DIR
 from src.extraction.relation_extractor import RelationExtractor
 from src.extraction.vncorenlp_parser import VnCoreNLPParser
 from src.data_models.dependency_token import parse_dependency_dict
+
 import pandas as pd
 import re
 
-text=load_txt(f"{BASE_DIR}/input/nead_refactor_cases.txt").strip()
+# text=load_txt(f"{BASE_DIR}/input/nead_refactor_cases.txt").strip()
+text = "Hạ_tầng công_nghệ_thông_tin ở vùng_sâu , vùng_xa còn yếu , tỷ_lệ phủ_sóng Internet chưa ổn_định , gây khó_khăn khi triển_khai phần_mềm và thiết_bị IoT ."
 text=re.sub(r'\s+', ' ', text)
 text = text.replace("\ufeff", "")
 text = text.replace("_", " ")
@@ -23,11 +25,12 @@ flatten_relations = [
         "trigger": relation["re"].trigger.text,
         "target": relation["re"].target.text
         if relation["re"].target else None,
+        "root_re": relation["root_re"],
         "sentence": relation["sen"],
     }
     for relation in re
 ]
 # relations = extractor.test(sentences)
 df = pd.DataFrame(flatten_relations)
-df.to_csv(f"{BASE_DIR}/output/test.csv", index=False, encoding="utf-8-sig", header=True)
+df.to_csv(f"{BASE_DIR}/output/test1.csv", index=False, encoding="utf-8-sig", header=True)
 # print(re)

@@ -101,6 +101,7 @@ class RelationExtractor:
                     relations.append({
                         "sen": " ".join(token.word for token in sentence.tokens),
                         "root": next((token.word for token in sentence.tokens if token.dep == "root"), None),
+                        "sentence": sentence,
                         "re": Relation(
                             source=result["source"],
                             trigger=trigger,

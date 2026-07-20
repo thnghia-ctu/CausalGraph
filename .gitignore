@@ -18,3 +18,6 @@ input/
 output/
 resources/
 lib/
+
+# Tests
+/tests/
