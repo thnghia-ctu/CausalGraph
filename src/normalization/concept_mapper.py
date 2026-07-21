@@ -12,6 +12,7 @@ from src.data_models.concept import (
     SemanticCandidate,
 )
 from src.normalization.concept_vocabulary import ConceptVocabulary
+from src.utils.embedding import encode_texts
 from src.utils.text_normalization import normalize_surface
 
 
@@ -38,21 +39,14 @@ class EmbeddingConceptMatcher:
         )
         self._embeddings: np.ndarray | None = None
 
-    def _get_model(self) -> object:
-        if self._model is None:
-            from sentence_transformers import SentenceTransformer
-
-            self._model = SentenceTransformer(self.model_name)
-        return self._model
-
     def _encode(self, texts: list[str]) -> np.ndarray:
-        model = self._get_model()
-        embeddings = model.encode(  # type: ignore[attr-defined]
+        embeddings = encode_texts(
             texts,
-            convert_to_numpy=True,
+            model=self._model,
+            model_name=self.model_name,
             normalize_embeddings=True,
         )
-        return np.asarray(embeddings, dtype=float)
+        return embeddings
 
     def search(self, query: str, top_k: int = 5) -> list[SemanticCandidate]:
         if top_k <= 0 or not self._entries:

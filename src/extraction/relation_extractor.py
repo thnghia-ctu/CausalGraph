@@ -98,17 +98,15 @@ class RelationExtractor:
                     pattern_name = classify_structure(trigger, tree)
                     handler = PATTERN_HANDLERS.get(pattern_name, handle_unmatched)
                     result = handler(trigger, tree)
-                    relations.append({
-                        "sen": " ".join(token.word for token in sentence.tokens),
-                        "root": next((token.word for token in sentence.tokens if token.dep == "root"), None),
-                        "sentence": sentence,
-                        "re": Relation(
+                    relations.append(
+                        Relation(
                             source=result["source"],
                             trigger=trigger,
                             relationship=result["pattern"],
-                            target=result["target"]
+                            target=result["target"],
+                            sentence=sentence
                         )
-                    })
+                    )
 
         return relations
 

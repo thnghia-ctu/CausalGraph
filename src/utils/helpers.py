@@ -1,3 +1,7 @@
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
 from sentence_transformers import SentenceTransformer
 import yaml
 
@@ -42,8 +46,6 @@ def load_config(path):
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-import pandas as pd
-
 def load_xlsx(file_path, sheet_name="Sheet1", column_name=None):
     
     df = pd.read_excel(file_path, sheet_name=sheet_name)
@@ -63,3 +65,19 @@ def load_xlsx(file_path, sheet_name="Sheet1", column_name=None):
         .str.strip()
         .tolist()
     )
+
+def save_to_csv(
+    file_path: str | Path,
+    data: Any,
+    *,
+    index: bool = False,
+    encoding: str = "utf-8-sig",
+) -> None:
+
+    path = Path(file_path)
+    if path.exists() and path.is_dir():
+        raise IsADirectoryError(f"CSV output path is a directory: {path}")
+
+    frame = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(path, index=index, encoding=encoding)
