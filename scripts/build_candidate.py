@@ -15,10 +15,10 @@ from src.concept_builder.candidate_neighbors import build_candidate_review_queue
 
 
 MAX_CANDIDATE_LENGTH = 200
-SEED_LIMIT = 100
+SEED_LIMIT = 1000
 TOP_K = 5
 
-CANDIDATES_PATH = f"{BASE_DIR}/input/candidates.csv"
+CANDIDATES_PATH = f"{BASE_DIR}/output/large_candidates.csv"
 COUNTS_PATH = f"{BASE_DIR}/input/counted_candidates.csv"
 REVIEW_PATH = f"{BASE_DIR}/input/candidate_review_queue.xlsx"
 
@@ -37,6 +37,7 @@ def build_inventory():
     return build_candidate_counts(
         CANDIDATES_PATH,
         COUNTS_PATH,
+        candidate_columns=["concept_candidate"],
     )
 
 

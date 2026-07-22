@@ -25,6 +25,11 @@ class Pipeline:
         self.factor_normalizer = FactorNormalizer.from_vocabulary_xlsx(
             BASE_DIR / "configs" / "controlled_concept_vocabulary.xlsx",
         )
+        self.stats = {
+            "article_count": 0,
+            "all_chunks": 0,
+            "accept_chunks": 0,
+        }
 
     def prepare_text(self, text: str) -> str:
         chunks = [
@@ -32,6 +37,9 @@ class Pipeline:
             for chunk in self.chunker.chunk(text)
         ]
         accepted_chunks, _ = filter_chunks(chunks)
+
+        self.stats["all_chunks"] += len(chunks)
+        self.stats["accept_chunks"] += len(accepted_chunks)
 
         return " ".join(accepted_chunks)
     
@@ -140,8 +148,8 @@ class Pipeline:
                 )
 
         # save
-        self.save_relations(relations, f"{BASE_DIR}/output/extracted_relations.csv")
-        self.save_candidates(all_normalized_factors, f"{BASE_DIR}/output/candidates.csv")
+        self.save_relations(relations, f"{BASE_DIR}/output/large_extracted_relations.csv")
+        self.save_candidates(all_normalized_factors, f"{BASE_DIR}/output/large_candidates.csv")
 
         visualize_graph(graph, out_path)
         return graph                 

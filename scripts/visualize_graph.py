@@ -41,6 +41,7 @@ def visualize() -> None:
             if not raw_text:
                 continue
 
+            pipeline.stats["article_count"] += 1
             relations.extend(
                 pipeline.extract_relations(raw_text)
             )
@@ -48,12 +49,17 @@ def visualize() -> None:
         except Exception as error:
             print(f"Error at link {link}: {error}")
             traceback.print_exc()
-
+    pd.DataFrame([pipeline.stats]).to_csv(
+        BASE_DIR / "output/pipeline_stats.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+    hlp.save_pickle(f"{BASE_DIR}data/intermediate/all_relations.pkl", relations)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pipeline.build_graph(relations, str(output_path))
 
 def main():
-    base_visualize()
+    visualize()
 
 
 if __name__ == "__main__":
