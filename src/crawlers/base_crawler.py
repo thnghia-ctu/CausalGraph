@@ -13,9 +13,14 @@ class BaseCrawler:
     def postprocess(self, text):
         raise NotImplementedError
     
-    def run(self, path):
+    def run(self, path: str | None, is_save = True)->str:
+
+        if is_save and path is None:
+            raise ValueError("path is required when is_save=True")
+
         raw = self.fetch()
         parsed = self.parse(raw)
         cleaned = self.postprocess(parsed)
-        self.save(cleaned, path)
+        if is_save:
+            self.save(cleaned, path)
         return cleaned

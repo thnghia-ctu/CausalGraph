@@ -1,9 +1,25 @@
+import pickle
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 import yaml
+
+
+def save_pickle(file_path: str | Path, data: Any) -> None:
+    """Lưu nhanh một Python object bằng Pickle."""
+    path = Path(file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("wb") as file:
+        pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_pickle(file_path: str | Path) -> Any:
+    """Đọc Python object từ một file Pickle đáng tin cậy."""
+    with Path(file_path).open("rb") as file:
+        return pickle.load(file)
+
 
 def load_txt(path: str) -> str:
     """Đọc file và trả về một chuỗi văn bản duy nhất."""
