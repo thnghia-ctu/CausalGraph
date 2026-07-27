@@ -1,12 +1,14 @@
 import logging
 
-from configs.config import BASE_DIR
+import pandas as pd
+
+from configs.config import UNIQUE_LINKS_PATH
 from src.crawlers.crawl_runner import CrawlRunner
 
 
 def load_links(path):
-    with open(path, "r", encoding="utf-8") as file:
-        return [line.strip() for line in file if line.strip()]
+    df = pd.read_csv(path, encoding="utf-8-sig")
+    return df["url"].dropna().astype(str).str.strip().tolist()
 
 
 def main():
@@ -14,8 +16,7 @@ def main():
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    links_path = BASE_DIR / "data/raw/links.txt"
-    links = load_links(links_path)
+    links = load_links(UNIQUE_LINKS_PATH)
     CrawlRunner().crawl_links(links, crawler_type="web")  # Change to "web" for web crawling
 
 

@@ -8,7 +8,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from configs.config import BASE_DIR
+from configs.config import BASE_DIR, MANIFEST_PATH
 
 from .base_crawler import BaseCrawler
 from .web_crawler import WebCrawler
@@ -16,7 +16,6 @@ from .youtube_crawler import YouTubeCrawler
 
 
 LOGGER = logging.getLogger(__name__)
-MANIFEST_PATH = BASE_DIR / "data/raw/manifest.jsonl"
 _manifest_lock = threading.Lock()
 
 

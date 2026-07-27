@@ -1,4 +1,4 @@
-from configs.config import BASE_DIR
+from configs.config import KNOWLEDGE_BASE_PATH
 from src.utils.helpers import load_xlsx
 import src.utils.embedding as emb
 
@@ -12,9 +12,8 @@ class Scorer:
     @classmethod
     def get_scorer(cls):
         if cls._instance is None:
-            knowledge_base_path = BASE_DIR / "configs/knowledge/knowledge_base.xlsx"
-            lexicons = load_xlsx(knowledge_base_path, 'lexicon', 'lexicon')
-            queries = load_xlsx(knowledge_base_path, 'query', 'query')
+            lexicons = load_xlsx(KNOWLEDGE_BASE_PATH, 'lexicon', 'lexicon')
+            queries = load_xlsx(KNOWLEDGE_BASE_PATH, 'query', 'query')
             cls._instance = cls(
                 emb.encode_texts(lexicons),
                 emb.encode_texts(queries),

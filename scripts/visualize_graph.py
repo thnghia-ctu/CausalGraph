@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import pandas as pd
-from configs.config import BASE_DIR
+from configs.config import BASE_DIR, CAUSAL_TRIGGERS_PATH, UNIQUE_LINKS_PATH
 from src.pipeline import Pipeline
 import src.utils.helpers as hlp
 from src.crawlers.crawl_runner import CrawlRunner
@@ -19,17 +19,16 @@ def base_visualize():
         if text:
             relations.extend(pipeline.extract_relations(text))
 
-    hlp.save_pickle(f"{BASE_DIR}data/intermediate/relations.pkl", relations)
+    hlp.save_pickle(f"{BASE_DIR}/data/intermediate/relations.pkl", relations)
     pipeline.build_graph(relations, f"{BASE_DIR}/output/concept_graph.html")
 
 def visualize() -> None:
     pipeline = Pipeline()
     relations = []
 
-    csv_path = BASE_DIR / "data/links/unique_links.csv"
     output_path = BASE_DIR / "output/large_concept_graph.html"
 
-    df = pd.read_csv(csv_path, encoding="utf-8-sig")
+    df = pd.read_csv(UNIQUE_LINKS_PATH, encoding="utf-8-sig")
     links = df["url"].dropna().astype(str).str.strip()
 
     for link in links:
@@ -56,13 +55,13 @@ def visualize() -> None:
         index=False,
         encoding="utf-8-sig",
     )
-    hlp.save_pickle(f"{BASE_DIR}data/intermediate/all_relations.pkl", relations)
+    hlp.save_pickle(f"{BASE_DIR}/data/intermediate/all_relations.pkl", relations)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pipeline.build_graph(relations, str(output_path))
 
 def normalized_relation_visualize() -> None:
     graph = nx.DiGraph()
-    df = pd.read_excel(BASE_DIR / "configs/causal_triggers.xlsx")
+    df = pd.read_excel(CAUSAL_TRIGGERS_PATH)
     triggers = set(df["trigger"].dropna().astype(str).str.strip().str.lower())
     df = pd.read_csv(BASE_DIR / "data/cache/ould_results.csv")
     relations = df.astype(object).where(df.notna(), None).to_dict("records")

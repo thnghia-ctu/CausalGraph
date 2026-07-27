@@ -4,16 +4,14 @@ from src.data_models.relation import Relation
 from src.data_models.dependency_token import DependencyToken, Sentence
 from src.data_models.trigger import Trigger
 from src.utils.helpers import  load_xlsx
-from configs.config import BASE_DIR
+from configs.config import CAUSAL_TRIGGERS_PATH
 from src.extraction.dependency_tree import DependencyTree
 from src.extraction.causal_patterns import classify_structure, PATTERN_HANDLERS, handle_unmatched
 
 class RelationExtractor:
 
     def __init__(self):
-        df = load_xlsx(
-            file_path=f"{BASE_DIR}/configs/causal_triggers.xlsx"
-        )
+        df = load_xlsx(file_path=CAUSAL_TRIGGERS_PATH)
         self.causal_triggers: dict[str, str] = {
             self._normalize(trigger): polarity
             for trigger, polarity in zip(df["trigger"], df["polarity"])
