@@ -8,8 +8,9 @@ import time
 
 import requests
 
+from src.utils.http_client import create_http_session
+
 from .base_search_adapter import BaseSearchAdapter
-from .http_client import create_http_session
 from .search_result import SearchResult
 
 

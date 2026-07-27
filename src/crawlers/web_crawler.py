@@ -1,19 +1,22 @@
-import requests
 import trafilatura
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from src.utils.http_client import create_http_session
 from .base_crawler import BaseCrawler
 import re
+import unicodedata
+
+_session = create_http_session()
 
 class WebCrawler(BaseCrawler):
     source_type = "web"
 
     def fetch(self):
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(self.url, headers=headers, timeout=10)
-        # FIX encoding tại đây
-        response.encoding = response.apparent_encoding
+        response = _session.get(self.url, timeout=10)
         response.raise_for_status()
+        
+        if response.encoding == "ISO-8859-1":
+            response.encoding = response.apparent_encoding
 
         requested_url = urlparse(self.url)
         final_url = urlparse(response.url)
@@ -61,13 +64,13 @@ class WebCrawler(BaseCrawler):
         return main_text
 
     def postprocess(self, text):
+        # NFC so downstream exact-match trigger lookup (RelationExtractor)
+        # doesn't silently miss triggers scraped in decomposed (NFD) form.
+        text = unicodedata.normalize("NFC", text)
         # Normalize whitespace while preserving paragraph boundaries.
-        text = re.sub(r'[ \t\r\f\v]+', ' ', text)
+        # [^\S\n] (not-non-whitespace-or-newline) catches Unicode spaces
+        # like \xa0 from &nbsp;, which a hand-picked ASCII class would miss.
+        text = re.sub(r'[^\S\n]+', ' ', text)
         text = re.sub(r' *\n *', '\n', text)
         text = re.sub(r'\n{3,}', '\n\n', text)
         return text.strip()
-
-    def save(self, text, path):
-        with open(path, "w", encoding="utf-8") as f:            
-            f.write(self.url + "\n\n")
-            f.write(text)

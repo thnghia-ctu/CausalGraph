@@ -4,8 +4,10 @@ import pandas as pd
 from configs.config import BASE_DIR
 from src.pipeline import Pipeline
 import src.utils.helpers as hlp
-from src.crawlers.crawler_factory import CrawlerFactory
+from src.crawlers.crawl_runner import CrawlRunner
 import traceback
+import networkx as nx
+from src.graph.graph_visualizer import visualize_graph
 
 
 def base_visualize():
@@ -35,7 +37,7 @@ def visualize() -> None:
             continue
 
         try:
-            crawler = CrawlerFactory.create(link)
+            crawler = CrawlRunner.create_crawler(link)
             raw_text = crawler.run(path=None, is_save=False)
 
             if not raw_text:
@@ -58,8 +60,32 @@ def visualize() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pipeline.build_graph(relations, str(output_path))
 
+def normalized_relation_visualize() -> None:
+    graph = nx.DiGraph()
+    df = pd.read_excel(BASE_DIR / "configs/causal_triggers.xlsx")
+    triggers = set(df["trigger"].dropna().astype(str).str.strip().str.lower())
+    df = pd.read_csv(BASE_DIR / "data/cache/ould_results.csv")
+    relations = df.astype(object).where(df.notna(), None).to_dict("records")
+
+    for relation in relations:
+        subject = relation["subject_concept"]
+        predicate = relation["predicate"]
+        object_ = relation["object_concept"]
+
+        if subject is not None and object_ is not None:# predicate.strip().lower() in triggers:
+            graph.add_edge(
+                subject,
+                object_,
+                relation=predicate,
+                score=relation.get("confidence", 1.0),
+            )
+
+    output_path = BASE_DIR / "output/graph.html"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    visualize_graph(graph, str(output_path))
+
 def main():
-    visualize()
+    normalized_relation_visualize()
 
 
 if __name__ == "__main__":

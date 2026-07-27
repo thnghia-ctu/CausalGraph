@@ -1,4 +1,6 @@
 class BaseCrawler:
+    delay_seconds: float = 2.0
+
     def __init__(self, url):
         self.url = url
 
@@ -8,8 +10,10 @@ class BaseCrawler:
     def parse(self):
         raise NotImplementedError
 
-    def save(self, path):
-        raise NotImplementedError
+    def save(self, text, path):
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+
     def postprocess(self, text):
         raise NotImplementedError
     

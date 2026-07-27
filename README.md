@@ -24,6 +24,7 @@ conda create --name causalgraph python=3.12
 conda activate causalgraph
 conda install --channel conda-forge openjdk=17
 pip install -r requirements.txt
+pip install google-genai
 python -m scripts.download_vncorenlp
 ```
 

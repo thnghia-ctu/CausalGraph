@@ -9,6 +9,7 @@ from .base_crawler import BaseCrawler
 
 class YouTubeCrawler(BaseCrawler):
     source_type = "youtube"
+    delay_seconds = 5.0
     _model = None
 
     def __init__(self, url):
@@ -67,8 +68,3 @@ class YouTubeCrawler(BaseCrawler):
         text = unicodedata.normalize("NFC", text)
         text = re.sub(r'\s+', ' ', text)
         return text.strip()
-
-    def save(self, text, path):
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(f"Source: {self.url}\n\n")
-            f.write(text)
