@@ -67,3 +67,18 @@ python -m scripts.filter_chunks
 tương đồng ngữ nghĩa với lexicon/query. Kết quả:
 - `data/chunks/chunks_filtered.jsonl` — chunk được giữ lại, map tới `url`/`doc_id` gốc.
 - `data/chunks/chunks_rejected.jsonl` — chunk bị loại.
+
+### 4. Trích câu và gán nhãn yếu nhân quả
+
+```bash
+python -m scripts.extract_causal_sentences
+```
+
+Đọc `data/chunks/chunks_filtered.jsonl`, tách câu bằng `underthesea.sent_tokenize`
+rồi gán nhãn yếu (`weak_label`: `causal`/`non_causal`) theo danh sách trigger
+trong `configs/causal_triggers.xlsx` (`src/causal_detection/trigger_classifier.py`).
+Đây là bước bootstrap dữ liệu huấn luyện cho mô hình phân lớp nhân quả (ML) sẽ
+xây dựng sau này, không phải phương pháp trích relation cuối cùng. Kết quả:
+`data/causal_sentences/causal_sentences.csv` — mỗi dòng là 1 câu, kèm
+`trigger` khớp được, `chunk_id`/`doc_id`/`url` để truy vết nguồn, và cột
+`human_label` để trống sẵn cho việc gán nhãn tay/active learning sau này.

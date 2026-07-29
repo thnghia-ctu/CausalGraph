@@ -14,3 +14,6 @@ Một concept chuẩn phải:
 - Phù hợp phạm vi nghiên cứu.
 - Không quá rộng đến mức gộp các hiện tượng khác nhau.
 - Không quá hẹp theo từng câu văn.
+
+1314 bài báo -> filter chunks có 3230 chunks giữ lại/11870 chunks loại bỏ
+Trong 3230 chunks -> 1169 câu nhân quả/9764 câu
