@@ -7,7 +7,6 @@ from src.utils.embedding import encode_texts
 from src.utils.text_normalization import normalize_surface
 
 
-CANDIDATE_MODEL_NAME = "keepitreal/vietnamese-sbert"
 NEIGHBOR_COLUMNS = ("seed_candidate", "neighbor", "similarity", "rank")
 REVIEW_COLUMNS = (
     "seed_candidate",
@@ -36,20 +35,13 @@ class CandidateNeighborFinder:
         reference_candidates: Sequence[str],
         *,
         model: object | None = None,
-        model_name: str = CANDIDATE_MODEL_NAME,
     ) -> None:
         self.references = _normalize(reference_candidates)
         self.model = model
-        self.model_name = model_name
         self.embeddings = self._encode(self.references) if self.references else None
 
     def _encode(self, texts: Sequence[str]) -> np.ndarray:
-        return encode_texts(
-            texts,
-            self.model,
-            model_name=self.model_name,
-            normalize_embeddings=True,
-        )
+        return encode_texts(texts, self.model, normalize_embeddings=True)
 
     def find_top_k(
         self,
@@ -90,7 +82,6 @@ def build_candidate_review_queue(
     seed_limit: int = 100,
     top_k: int = 5,
     model: object | None = None,
-    model_name: str = CANDIDATE_MODEL_NAME,
 ) -> pd.DataFrame:
     required = {"concept_candidate", "count"}
     missing = required - set(candidate_counts.columns)
@@ -124,7 +115,6 @@ def build_candidate_review_queue(
     finder = CandidateNeighborFinder(
         candidates["concept_candidate"].tolist(),
         model=model,
-        model_name=model_name,
     )
     queue = finder.find_top_k(
         candidates.head(seed_limit)["concept_candidate"].tolist(),

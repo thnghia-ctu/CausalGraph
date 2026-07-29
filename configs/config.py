@@ -7,3 +7,12 @@ CAUSAL_TRIGGERS_PATH = BASE_DIR / "configs/causal_triggers.xlsx"
 KNOWLEDGE_BASE_PATH = BASE_DIR / "configs/knowledge/knowledge_base.xlsx"
 UNIQUE_LINKS_PATH = BASE_DIR / "data/links/unique_links.csv"
 MANIFEST_PATH = BASE_DIR / "data/raw/manifest.jsonl"
+
+CHUNKS_DIR = BASE_DIR / "data/chunks"
+FILTERED_CHUNKS_PATH = CHUNKS_DIR / "chunks_filtered.jsonl"
+REJECTED_CHUNKS_PATH = CHUNKS_DIR / "chunks_rejected.jsonl"
+
+CHUNK_FILTER_THRESHOLD = 0.38
+
+CAUSAL_SENTENCES_DIR = BASE_DIR / "data/causal_sentences"
+CAUSAL_SENTENCES_PATH = CAUSAL_SENTENCES_DIR / "causal_sentences.csv"

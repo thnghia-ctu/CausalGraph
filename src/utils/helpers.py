@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 import yaml
 
 
@@ -54,9 +53,6 @@ def save_txt(path, data):
         
     except Exception as e:
         print(f"Lỗi khi lưu file: {e}")
-
-def load_embedding_model(model_name="keepitreal/vietnamese-sbert"):
-    return SentenceTransformer(model_name)
 
 def load_config(path):
     with open(path, "r", encoding="utf-8") as f:

@@ -27,11 +27,9 @@ class EmbeddingConceptMatcher:
         self,
         vocabulary: ConceptVocabulary,
         model: object | None = None,
-        model_name: str = "keepitreal/vietnamese-sbert",
     ) -> None:
         self.vocabulary = vocabulary
         self._model = model
-        self.model_name = model_name
         self._entries: tuple[tuple[str, ControlledConcept], ...] = tuple(
             (normalize_surface(label), concept)
             for concept in vocabulary.concepts
@@ -40,13 +38,7 @@ class EmbeddingConceptMatcher:
         self._embeddings: np.ndarray | None = None
 
     def _encode(self, texts: list[str]) -> np.ndarray:
-        embeddings = encode_texts(
-            texts,
-            model=self._model,
-            model_name=self.model_name,
-            normalize_embeddings=True,
-        )
-        return embeddings
+        return encode_texts(texts, model=self._model, normalize_embeddings=True)
 
     def search(self, query: str, top_k: int = 5) -> list[SemanticCandidate]:
         if top_k <= 0 or not self._entries:

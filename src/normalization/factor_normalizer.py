@@ -44,18 +44,13 @@ class FactorNormalizer:
         state_lexicon_path: str | Path | None = None,
         use_embeddings: bool = True,
         embedding_model: object | None = None,
-        embedding_model_name: str = "keepitreal/vietnamese-sbert",
         auto_accept_threshold: float = 0.85,
         review_threshold: float = 0.65,
         top_k: int = 5,
     ) -> "FactorNormalizer":
         vocabulary = ConceptVocabulary.from_xlsx(concept_vocabulary_path)
         matcher = (
-            EmbeddingConceptMatcher(
-                vocabulary,
-                model=embedding_model,
-                model_name=embedding_model_name,
-            )
+            EmbeddingConceptMatcher(vocabulary, model=embedding_model)
             if use_embeddings
             else None
         )

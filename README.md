@@ -1,5 +1,5 @@
 # CausalGraph
-s
+
 ## Yêu cầu hệ thống
 
 Trước khi cài đặt, hãy bảo đảm máy đã có:
@@ -37,16 +37,33 @@ which java       # Linux/macOS
 where java       # Windows
 ```
 
-## Sử dụng
+## Quy trình xử lý dữ liệu
 
-### Thêm lexicon
+### 1. Thu thập link bài viết
 
 ```bash
-python -m scripts.import_lexicon_txt
+python -m scripts.collection.collect_search_links
 ```
 
-### Cào dữ liệu
+Tìm kiếm theo từ khóa khai báo trong `configs/search_sources.py`, ghi kết quả
+vào `data/links/search_results_raw.csv` và `data/links/unique_links.csv`.
+
+### 2. Cào nội dung bài viết
 
 ```bash
 python -m scripts.crawl_data
 ```
+
+Đọc URL từ `data/links/unique_links.csv`, cào nội dung và lưu text vào
+`data/raw/web/`, đồng thời ghi ánh xạ URL ↔ file vào `data/raw/manifest.jsonl`.
+
+### 3. Lọc chunk theo độ liên quan
+
+```bash
+python -m scripts.filter_chunks
+```
+
+Đọc `data/raw/manifest.jsonl`, chia nhỏ (chunk) từng bài viết rồi lọc theo độ
+tương đồng ngữ nghĩa với lexicon/query. Kết quả:
+- `data/chunks/chunks_filtered.jsonl` — chunk được giữ lại, map tới `url`/`doc_id` gốc.
+- `data/chunks/chunks_rejected.jsonl` — chunk bị loại.

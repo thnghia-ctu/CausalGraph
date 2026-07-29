@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
+DEFAULT_MODEL_NAME = "keepitreal/vietnamese-sbert"
 
 
 @lru_cache(maxsize=4)

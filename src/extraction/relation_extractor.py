@@ -1,92 +1,18 @@
-from collections import defaultdict
-
+from src.causal_detection.trigger_classifier import TriggerCausalClassifier
 from src.data_models.relation import Relation
 from src.data_models.dependency_token import DependencyToken, Sentence
-from src.data_models.trigger import Trigger
-from src.utils.helpers import  load_xlsx
-from configs.config import CAUSAL_TRIGGERS_PATH
 from src.extraction.dependency_tree import DependencyTree
 from src.extraction.causal_patterns import classify_structure, PATTERN_HANDLERS, handle_unmatched
 
 class RelationExtractor:
 
     def __init__(self):
-        df = load_xlsx(file_path=CAUSAL_TRIGGERS_PATH)
-        self.causal_triggers: dict[str, str] = {
-            self._normalize(trigger): polarity
-            for trigger, polarity in zip(df["trigger"], df["polarity"])
-        }
-
-        # Index theo TỪ ĐẦU TIÊN -> list các trigger (dạng list từ) bắt đầu bằng từ đó
-        # VD: "tăng_cường" -> word_seq = ["tăng", "cường"] -> index["tăng"] += ["tăng","cường"]
-        self.trigger_index: dict[str, list[str]] = defaultdict(list)
-        for norm_trigger in self.causal_triggers.keys():
-            word_seq = norm_trigger.split("_")
-            self.trigger_index[word_seq[0]].append(norm_trigger)
-
-        # Sắp xếp mỗi nhóm theo độ dài giảm dần -> ưu tiên match trigger dài trước
-        for first_word in self.trigger_index:
-            self.trigger_index[first_word].sort(key=len, reverse=True)
-
-    @staticmethod
-    def _normalize(text: str) -> str:
-        return text.strip().replace(" ", "_").lower()
-
-    def find_triggers(self, sentence: Sentence) -> list[Trigger]:
-        tokens = sentence.tokens
-        n_tokens = len(tokens)
-        found: list[Trigger] = []
-        used_ids: set[int] = set()
-
-        for i in range(n_tokens):
-            if tokens[i].id in used_ids:
-                continue
-
-            first_word = self._normalize(tokens[i].word).split("_")[0]
-            candidates = self.trigger_index.get(first_word)
-            if not candidates:
-                continue  # từ đầu không khớp trigger nào -> bỏ qua ngay, không thử
-            # candidates đã sort dài -> ngắn, nên match đầu tiên tìm được là dài nhất
-            for word_seq in candidates:
-                span_len = len(word_seq)
-                j=i
-                trig="_".join([self._normalize(tok.word) for tok in tokens[i:j+1]])
-                while span_len<len(trig) and j<n_tokens-1:
-                    j+=1
-                    trig="_".join([self._normalize(tok.word) for tok in tokens[i:j+1]])
-                if trig== word_seq:
-                    found.append(Trigger(
-                        start_id=tokens[i].id,
-                        end_id=tokens[j].id,
-                        text=word_seq
-                    ))
-                    used_ids.update(range(tokens[i].id, tokens[j].id + 1))
-                    # break  # match xong trigger dài nhất -> bỏ qua các trigger ngắn hơn
-
-        return sorted(found, key=lambda tr: tr.start_id)
-
-
-
-
-        # triggers = []
-        # all_words = list(self.causal_triggers.keys())
-        # for word in all_words:
-        #     word_tokens = word.split()
-        #     n = len(word_tokens)
-        #     for i in range(len(sentence.tokens) - n + 1):
-        #         if all(sentence.tokens[i + j].word == word_tokens[j] for j in range(n)):
-        #             triggers.append(Trigger(
-        #                 start_id=sentence.tokens[i].id,
-        #                 end_id=sentence.tokens[i + n - 1].id,
-        #                 text=word
-        #             ))
-
-        # return triggers
+        self.trigger_classifier = TriggerCausalClassifier()
 
     def extract_causal_relation(self, sentences: list[Sentence]) -> list[Relation]:
         relations = []
         for sentence in sentences:
-            triggers = self.find_triggers(sentence)
+            triggers = self.trigger_classifier.find_triggers(sentence)
             if triggers:
                 for trigger in triggers:
                     tree = DependencyTree(sentence)
@@ -111,7 +37,7 @@ class RelationExtractor:
     def test(self, sentences: list[Sentence]):
         re=[]
         for sentence in sentences:
-            triggers = self.find_triggers(sentence)
+            triggers = self.trigger_classifier.find_triggers(sentence)
             if triggers:
                 tree=DependencyTree(sentence)
                 root_word=next((token for token in sentence.tokens if token.dep=="root"), None)
@@ -141,7 +67,7 @@ class RelationExtractor:
             root_word = next((token for token in sentence.tokens if token.dep == "root"), None)
             if not root_word:
                 continue
-            triggers = self.find_triggers(sentence, root_word.id)
+            triggers = self.trigger_classifier.find_triggers(sentence)
             sources = self.find_span(sentence, root_word.id, {"sub" ,"nsubj", "advcl"})
             for trigger in triggers:                
                 targets = self.find_span(sentence, trigger.end_id, {"obj", "dob", "pob", "ccomp", "xcomp"})

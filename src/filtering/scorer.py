@@ -20,13 +20,12 @@ class Scorer:
             )
         return cls._instance
 
-    def score(self, item):
-        item_embedding = emb.encode_text(item)
-        lexicon_score = emb.similarity_from_embedding(
-            item_embedding, self.lexicon_embeddings
-        )
-        queries_score = emb.similarity_from_embedding(
-            item_embedding, self.queries_embeddings
-        )
-        score = 0.3*lexicon_score + 0.7*queries_score
-        return score
+    def score(self, items):
+        if not items:
+            return []
+        item_embeddings = emb.encode_texts(items)
+        return [
+            0.3 * emb.similarity_from_embedding(item_embedding, self.lexicon_embeddings, top_k=1)
+            + 0.7 * emb.similarity_from_embedding(item_embedding, self.queries_embeddings, top_k=1)
+            for item_embedding in item_embeddings
+        ]
