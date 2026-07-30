@@ -5,6 +5,9 @@ __pycache__/
 *.pyd
 cache/
 
+# Secrets
+.env
+
 # Dataset
 data/
 *_text.txt

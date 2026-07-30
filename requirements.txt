@@ -16,3 +16,5 @@ pyvis
 # causalgraph
 py_vncorenlp
 pandas
+python-dotenv
+google-genai

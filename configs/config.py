@@ -16,3 +16,13 @@ CHUNK_FILTER_THRESHOLD = 0.38
 
 CAUSAL_SENTENCES_DIR = BASE_DIR / "data/causal_sentences"
 CAUSAL_SENTENCES_PATH = CAUSAL_SENTENCES_DIR / "causal_sentences.csv"
+
+LLM_RELATIONS_DIR = BASE_DIR / "data/llm_relations"
+LLM_RELATIONS_PATH = LLM_RELATIONS_DIR / "relations.csv"
+RELATIONS_REJECTED_PATH = LLM_RELATIONS_DIR / "relations_rejected.csv"
+
+GRAPH_DIR = BASE_DIR / "data/graph"
+RELATIONS_WITH_CONCEPT_PATH = GRAPH_DIR / "relations_with_concept.csv"
+CONCEPTS_PATH = GRAPH_DIR / "concepts.jsonl"
+
+CONCEPT_CLUSTER_DISTANCE_THRESHOLD = 0.15
