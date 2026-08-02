@@ -1,4 +1,39 @@
+from pathlib import Path
+
 from pyvis.network import Network
+
+CLICK_PANEL_HTML = r"""
+<div id="edge-detail" style="position:fixed;right:0;top:0;width:360px;height:100%;
+     overflow-y:auto;background:#fff;border-left:1px solid #ccc;padding:12px;
+     display:none;font-family:sans-serif;font-size:13px;z-index:9999;">
+  <button onclick="document.getElementById('edge-detail').style.display='none'">✕</button>
+  <div id="edge-detail-body"></div>
+</div>
+<script>
+  function textFragmentUrl(url, sentence) {
+    var excerpt = (sentence || "").trim().split(/\s+/).slice(0, 12).join(" ");
+    return url + "#:~:text=" + encodeURIComponent(excerpt);
+  }
+
+  network.on("click", function (params) {
+    if (params.edges.length === 0) return;
+    var edge = edges.get(params.edges[0]);
+    var rels = edge.relations || [];
+    var html = "<h3>" + edge.from + " → " + edge.to + "</h3>";
+    rels.forEach(function (r) {
+      html += "<hr><b>" + r.subject_text + "</b> — " + r.predicate +
+              " — <b>" + r.object_text + "</b><br><i>" + r.original_sentence + "</i>";
+      if (r.url) {
+        html += "<br><a href='" + textFragmentUrl(r.url, r.original_sentence) +
+                "' target='_blank' rel='noopener'>🔗 Xem nguồn</a>";
+      }
+    });
+    document.getElementById("edge-detail-body").innerHTML = html;
+    document.getElementById("edge-detail").style.display = "block";
+  });
+</script>
+"""
+
 
 def visualize_graph(graph, path):
     net = Network(notebook=True, directed=True)
@@ -7,9 +42,20 @@ def visualize_graph(graph, path):
     for source, target, data in graph.edges(data=True):
         relation = data.get('relation', '')
         score = data.get('score', 0)
-        net.add_edge(source, target, title=f"{relation} ({score:.2f})")
+        net.add_edge(
+            source, target,
+            title=f"{relation} ({score:.2f})",
+            relations=data.get('relations', []),
+        )
     net.show(path)
+    _inject_click_panel(path)
     return None
+
+
+def _inject_click_panel(path):
+    html = Path(path).read_text(encoding="utf-8")
+    html = html.replace("</body>", CLICK_PANEL_HTML + "</body>")
+    Path(path).write_text(html, encoding="utf-8")
 
 import os
 

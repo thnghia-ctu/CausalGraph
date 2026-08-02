@@ -15,5 +15,12 @@ Một concept chuẩn phải:
 - Không quá rộng đến mức gộp các hiện tượng khác nhau.
 - Không quá hẹp theo từng câu văn.
 
-1314 bài báo -> filter chunks có 3230 chunks giữ lại/11870 chunks loại bỏ
-Trong 3230 chunks -> 1169 câu nhân quả/9764 câu
+1314 bài báo
+-> 3230/15100 chunks (filter theo score)
+-> 1169/9764 câu nhân quả (filter từ khóa)
+-> 4267 câu đơn (LLM tách)
+-> 1918 câu hợp lệ (đủ subject/object + có predicate là từ khóa nhân quả (giúp, khiến,...))
+-> 1645 cụm concept thô (candidate text từ subject/object)
+-> gom bằng agglomerative clustering (average linkage, cosine, threshold=0.15) 
+-> 1514 nút và 1617 cạnh
+-> lọc cạnh có ≥2 quan hệ (MIN_EDGE_COUNT=2) -> 244 nút, 200 cạnh hiển thị trên graph

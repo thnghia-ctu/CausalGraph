@@ -1,6 +1,10 @@
 import pandas as pd
 
+from src.causal_detection.trigger_classifier import TriggerCausalClassifier
+
 REQUIRED_CONCEPT_COLUMNS = ("source_concept_candidate", "target_concept_candidate")
+
+_trigger_classifier = TriggerCausalClassifier()
 
 
 def drop_missing_concept(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -9,7 +13,13 @@ def drop_missing_concept(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     return df[~missing], rejected
 
 
-RELATION_FILTERS = (drop_missing_concept,)
+def drop_non_causal_simple_sentence(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    is_causal = df["simple_sentence"].fillna("").apply(_trigger_classifier.is_causal_text)
+    rejected = df[~is_causal].assign(reject_reason="non_causal_simple_sentence")
+    return df[is_causal], rejected
+
+
+RELATION_FILTERS = (drop_missing_concept, drop_non_causal_simple_sentence)
 
 
 def filter_relations(
