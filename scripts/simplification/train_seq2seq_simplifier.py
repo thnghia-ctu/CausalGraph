@@ -8,7 +8,7 @@ if str(ROOT) not in sys.path:
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from configs.config import LLM_RELATIONS_PATH, SIMPLIFIER_MODEL_DIR
+from configs.config import SIMPLIFICATION_SENTENCES_PATH, SIMPLIFIER_MODEL_DIR
 from src.simplification.seq2seq_simplifier import SENTENCE_SEPARATOR, Seq2SeqSimplifier
 
 
@@ -22,7 +22,7 @@ def build_pairs(path: Path) -> list[tuple[str, str]]:
 
 
 def main():
-    pairs = build_pairs(LLM_RELATIONS_PATH)
+    pairs = build_pairs(SIMPLIFICATION_SENTENCES_PATH)
     train_pairs, eval_pairs = train_test_split(pairs, test_size=0.1, random_state=42)
 
     simplifier = Seq2SeqSimplifier()
