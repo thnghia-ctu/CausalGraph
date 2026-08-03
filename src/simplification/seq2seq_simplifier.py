@@ -42,6 +42,14 @@ class Seq2SeqSimplifier:
         self.model_name = model_name
         self.tokenizer = _load_tokenizer(model_name)
         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        self._ensure_sep_token()
+
+    def _ensure_sep_token(self) -> None:
+        sep = SENTENCE_SEPARATOR.strip()
+        existing = getattr(self.tokenizer, "additional_special_tokens", None) or []
+        if sep not in existing:
+            self.tokenizer.add_special_tokens({"additional_special_tokens": [sep]})
+            self.model.resize_token_embeddings(len(self.tokenizer))
 
     def _tokenize(self, examples: dict) -> dict:
         model_inputs = self.tokenizer(
@@ -117,7 +125,12 @@ class Seq2SeqSimplifier:
     def simplify(self, text: str) -> list[str]:
         inputs = self.tokenizer(text, max_length=MAX_INPUT_LENGTH, truncation=True, return_tensors="pt")
         output_ids = self.model.generate(**inputs, max_length=MAX_TARGET_LENGTH)
-        decoded = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        # skip_special_tokens=False vì <sep> giờ cũng là 1 special token, cần giữ lại
+        # để split(); pad/eos/bos bị lẫn vào nên phải tự loại bỏ tay ở dưới.
+        decoded = self.tokenizer.decode(output_ids[0], skip_special_tokens=False)
+        for token in (self.tokenizer.pad_token, self.tokenizer.eos_token, self.tokenizer.bos_token):
+            if token:
+                decoded = decoded.replace(token, "")
         return [s.strip() for s in decoded.split(SENTENCE_SEPARATOR.strip()) if s.strip()]
 
     def save(self, path: str | Path) -> None:
@@ -134,4 +147,5 @@ class Seq2SeqSimplifier:
         instance.model_name = str(path)
         instance.tokenizer = _load_tokenizer(path)
         instance.model = AutoModelForSeq2SeqLM.from_pretrained(path)
+        instance._ensure_sep_token()
         return instance
