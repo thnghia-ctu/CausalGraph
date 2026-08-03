@@ -12,6 +12,9 @@ cache/
 data/
 *_text.txt
 
+# Trained model artifacts
+models/
+
 # Logs
 logs/
 

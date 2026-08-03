@@ -71,12 +71,15 @@ tương đồng ngữ nghĩa với lexicon/query. Kết quả:
 ### 4. Trích câu và gán nhãn yếu nhân quả
 
 ```bash
-python -m scripts.extract_causal_sentences
+python -m scripts.causal_classification.build_causal_sentences
+python -m scripts.causal_classification.label_by_trigger
 ```
 
-Đọc `data/chunks/chunks_filtered.jsonl`, tách câu bằng `underthesea.sent_tokenize`
-rồi gán nhãn yếu (`weak_label`: `causal`/`non_causal`) theo danh sách trigger
-trong `configs/causal_triggers.xlsx` (`src/causal_detection/trigger_classifier.py`).
+`build_causal_sentences` đọc `data/chunks/chunks_filtered.jsonl`, tách câu bằng
+`underthesea.sent_tokenize` và dựng khung `data/causal_sentences/causal_sentences.csv`
+(chạy lại sẽ làm mới toàn bộ file). `label_by_trigger` đọc file đó và điền
+`weak_label`/`trigger` theo danh sách trigger trong `configs/causal_triggers.xlsx`
+(`src/causal_detection/trigger_classifier.py`), giữ nguyên các cột khác.
 Đây là bước bootstrap dữ liệu huấn luyện cho mô hình phân lớp nhân quả (ML) sẽ
 xây dựng sau này, không phải phương pháp trích relation cuối cùng. Kết quả:
 `data/causal_sentences/causal_sentences.csv` — mỗi dòng là 1 câu, kèm
