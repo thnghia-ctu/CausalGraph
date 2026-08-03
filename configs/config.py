@@ -23,6 +23,8 @@ LLM_RELATIONS_DIR = BASE_DIR / "data/llm_relations"
 LLM_RELATIONS_PATH = LLM_RELATIONS_DIR / "relations.csv"
 RELATIONS_REJECTED_PATH = LLM_RELATIONS_DIR / "relations_rejected.csv"
 
+SIMPLIFIER_MODEL_DIR = BASE_DIR / "models/simplifier"
+
 GRAPH_DIR = BASE_DIR / "data/graph"
 RELATIONS_WITH_CONCEPT_PATH = GRAPH_DIR / "relations_with_concept.csv"
 CONCEPTS_PATH = GRAPH_DIR / "concepts.jsonl"
