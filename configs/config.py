@@ -18,6 +18,7 @@ CAUSAL_SENTENCES_DIR = BASE_DIR / "data/causal_sentences"
 CAUSAL_SENTENCES_PATH = CAUSAL_SENTENCES_DIR / "causal_sentences.csv"
 
 CAUSAL_CLASSIFIER_MODEL_PATH = BASE_DIR / "models/causal_classifier.joblib"
+CAUSAL_FASTTEXT_MODEL_PATH = BASE_DIR / "models/causal_classifier_fasttext.bin"
 
 LLM_RELATIONS_DIR = BASE_DIR / "data/llm_relations"
 LLM_RELATIONS_PATH = LLM_RELATIONS_DIR / "relations.csv"
@@ -25,6 +26,9 @@ RELATIONS_REJECTED_PATH = LLM_RELATIONS_DIR / "relations_rejected.csv"
 
 SIMPLIFICATION_SENTENCES_PATH = BASE_DIR / "data/simplification/simplificated_sentences.csv"
 SIMPLIFIER_MODEL_DIR = BASE_DIR / "models/simplifier"
+
+SPO_TAGGER_MODEL_DIR = BASE_DIR / "models/spo_tagger"
+SPO_RELATIONS_PATH = BASE_DIR / "data/SPO/relations.csv"
 
 GRAPH_DIR = BASE_DIR / "data/graph"
 RELATIONS_WITH_CONCEPT_PATH = GRAPH_DIR / "relations_with_concept.csv"

@@ -21,3 +21,4 @@ google-genai
 sentencepiece
 accelerate
 datasets
+fasttext-wheel
