@@ -4,6 +4,7 @@ import pandas as pd
 
 from src.chunking.semantic_chunker import SemanticChunker
 from src.extraction.relation_extractor import RelationExtractor
+from src.extraction.svo_extractor import SVOExtractor
 from src.extraction.vncorenlp_parser import VnCoreNLPParser
 from src.filtering.semantic_filter import filter_chunks
 from src.normalization.factor_normalizer import FactorNormalizer
@@ -21,6 +22,7 @@ class Pipeline:
     def  __init__(self):
         self.chunker = SemanticChunker()
         self.relation_extractor = RelationExtractor()
+        self.svo_extractor = SVOExtractor()
         # self.factor_normalizer = FactorNormalizer()
         self.factor_normalizer = FactorNormalizer.from_vocabulary_xlsx(
             BASE_DIR / "configs" / "controlled_concept_vocabulary.xlsx",
@@ -49,9 +51,10 @@ class Pipeline:
         sentences = VnCoreNLPParser.parse_text(
             prepared_text
         )
-        return self.relation_extractor.extract_causal_relation(
-            sentences
-        )
+        return [self.svo_extractor.extract(sentence) for sentence in sentences]
+        # return self.relation_extractor.extract_causal_relation(
+        #     sentences
+        # )
 
     @staticmethod
     def save_relations(relations: list[Relation], out_path: str | Path) -> None:

@@ -29,6 +29,11 @@ SIMPLIFIER_MODEL_DIR = BASE_DIR / "models/simplifier"
 
 SPO_TAGGER_MODEL_DIR = BASE_DIR / "models/spo_tagger"
 SPO_RELATIONS_PATH = BASE_DIR / "data/SPO/relations.csv"
+SPO_PREDICTIONS_PATH = BASE_DIR / "data/SPO/relations_predicted.csv"
+
+CONCEPT_STATE_TAGGER_MODEL_DIR = BASE_DIR / "models/concept_state_tagger"
+CONCEPT_STATE_RELATIONS_PATH = BASE_DIR / "data/concept_state/relations.csv"
+CONCEPT_STATE_PREDICTIONS_PATH = BASE_DIR / "data/concept_state/relations_predicted.csv"
 
 GRAPH_DIR = BASE_DIR / "data/graph"
 RELATIONS_WITH_CONCEPT_PATH = GRAPH_DIR / "relations_with_concept.csv"
