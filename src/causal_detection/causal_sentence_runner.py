@@ -2,6 +2,7 @@ import csv
 import logging
 from dataclasses import asdict
 from pathlib import Path
+from typing import Protocol
 
 from underthesea import sent_tokenize
 
@@ -25,19 +26,28 @@ FIELDNAMES = [
 ]
 
 
+class CausalClassifier(Protocol):
+    def predict(self, texts: list[str]) -> list[str]: ...
+
+
 class CausalSentenceRunner:
-    def __init__(self):
-        self.trigger_classifier = TriggerCausalClassifier()
+    def __init__(self, classifier: CausalClassifier | None = None):
+        self.classifier = classifier or TriggerCausalClassifier()
 
     def process_chunk(self, chunk: Chunk) -> list[CausalSentence]:
         sentences = sent_tokenize(chunk.text)
+        if not sentences:
+            return []
+
+        labels = self.classifier.predict(sentences)
+        find_triggers = getattr(self.classifier, "find_trigger_matches", None)
 
         rows = []
-        for sentence_index, sentence in enumerate(sentences):
-            triggers = self.trigger_classifier.find_trigger_matches(sentence)
+        for sentence_index, (sentence, label) in enumerate(zip(sentences, labels)):
+            triggers = find_triggers(sentence) if find_triggers else []
             rows.append(CausalSentence(
                 sentence=sentence,
-                weak_label="causal" if triggers else "non_causal",
+                weak_label=label,
                 trigger=triggers[0] if triggers else "",
                 chunk_id=chunk.chunk_id,
                 doc_id=chunk.doc_id,

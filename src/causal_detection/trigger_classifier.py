@@ -60,6 +60,9 @@ class TriggerCausalClassifier:
     def is_causal_text(self, text: str) -> bool:
         return bool(self.find_trigger_matches(text))
 
+    def predict(self, texts: list[str]) -> list[str]:
+        return ["causal" if self.find_trigger_matches(text) else "non_causal" for text in texts]
+
     def find_triggers(self, sentence: Sentence) -> list[Trigger]:
         tokens = sentence.tokens
         n_tokens = len(tokens)

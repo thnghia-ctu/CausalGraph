@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.causal_detection.fasttext_classifier import FastTextCausalClassifier
 from src.causal_detection.causal_sentence_runner import CausalSentenceRunner
 from src.chunking.chunk_runner import ChunkRunner
 from src.chunking.semantic_chunker import SemanticChunker
@@ -28,7 +29,7 @@ class Pipeline:
     def  __init__(self):
         self.crawl_runner = CrawlRunner()
         self.chunk_runner = ChunkRunner()
-        self.causal_sentence_runner = CausalSentenceRunner()
+        self.causal_sentence_runner = CausalSentenceRunner(classifier=FastTextCausalClassifier.load())
         self.chunker = SemanticChunker()
         self.relation_extractor = RelationExtractor()
         self.svo_extractor = SVOExtractor()
