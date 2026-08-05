@@ -18,7 +18,7 @@ from transformers.trainer_utils import get_last_checkpoint
 DEFAULT_MODEL_NAME = "VietAI/vit5-base"
 MAX_INPUT_LENGTH = 256
 MAX_TARGET_LENGTH = 384
-SENTENCE_SEPARATOR = "\n"
+SENTENCE_SEPARATOR = "; "
 
 
 def _load_tokenizer(model_name: str):
