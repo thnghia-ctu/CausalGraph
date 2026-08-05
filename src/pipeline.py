@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.causal_detection.causal_sentence_runner import CausalSentenceRunner
+from src.chunking.chunk_runner import ChunkRunner
 from src.chunking.semantic_chunker import SemanticChunker
 from src.crawlers.crawl_runner import CrawlRunner
 from src.extraction.relation_extractor import RelationExtractor
@@ -13,6 +15,8 @@ import src.utils.text_normalization as txn
 import src.utils.helpers as hlp
 from configs.config import BASE_DIR, CACHE_DIR
 import traceback
+from src.data_models.causal_sentence import CausalSentence
+from src.data_models.chunk import Chunk
 from src.data_models.document import Document
 from src.data_models.relation import Relation
 from src.data_models.normalized_factor import NormalizedFactor
@@ -23,6 +27,8 @@ from src.graph.graph_visualizer import visualize_graph
 class Pipeline:
     def  __init__(self):
         self.crawl_runner = CrawlRunner()
+        self.chunk_runner = ChunkRunner()
+        self.causal_sentence_runner = CausalSentenceRunner()
         self.chunker = SemanticChunker()
         self.relation_extractor = RelationExtractor()
         self.svo_extractor = SVOExtractor()
@@ -38,6 +44,16 @@ class Pipeline:
 
     def crawl_data(self, urls: list[str], output_path: str | Path = CACHE_DIR) -> list[Document]:
         return self.crawl_runner.crawl_links(urls, output_path=output_path)
+
+    def chunk_data(self, documents: list[Document], output_path: str | Path = CACHE_DIR) -> list[Chunk]:
+        return self.chunk_runner.chunk_documents(documents, output_path=output_path)
+
+    def detect_causal_sentences(
+        self,
+        chunks: list[Chunk],
+        output_path: str | Path = CACHE_DIR,
+    ) -> list[CausalSentence]:
+        return self.causal_sentence_runner.build_causal_sentences(chunks, output_path=output_path)
 
     def prepare_text(self, text: str) -> str:
         chunks = [
