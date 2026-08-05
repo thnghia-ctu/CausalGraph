@@ -2,13 +2,15 @@
 
 import hashlib
 import json
-import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import asdict
 from pathlib import Path
+import logging
 
-from configs.config import BASE_DIR, MANIFEST_PATH
+from configs.config import CACHE_DIR
+from src.data_models.document import Document
 
 from .base_crawler import BaseCrawler
 from .web_crawler import WebCrawler
@@ -16,15 +18,22 @@ from .youtube_crawler import YouTubeCrawler
 
 
 LOGGER = logging.getLogger(__name__)
-_manifest_lock = threading.Lock()
+_document_index_lock = threading.Lock()
 
 
-def _append_manifest(url: str, filename: str, source_type: str) -> None:
-    entry = {"url": url, "filename": filename, "source_type": source_type}
-    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with _manifest_lock:
-        with open(MANIFEST_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+def _append_document(index_path: Path, document: Document) -> None:
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    with _document_index_lock:
+        with open(index_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(asdict(document), ensure_ascii=False) + "\n")
+
+
+def load_documents(output_path: str | Path) -> list[Document]:
+    index_path = Path(output_path) / "raw" / "documents.jsonl"
+    if not index_path.exists():
+        return []
+    with open(index_path, "r", encoding="utf-8") as f:
+        return [Document(**json.loads(line)) for line in f if line.strip()]
 
 
 class RateLimiter:
@@ -78,9 +87,7 @@ class CrawlRunner:
 
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            text = crawler.run(output_path)
-            _append_manifest(link, output_path.name, source_type)
-            return text
+            return crawler.run(output_path)
 
         except Exception as error:
             LOGGER.error("Lỗi tại link %s: %s", link, error)
@@ -89,13 +96,17 @@ class CrawlRunner:
     def crawl_links(
         self,
         links,
+        output_path: str | Path = CACHE_DIR,
         crawler_type: str | None = None,
         delay_seconds: float | None = None,
         max_workers: int = 8,
-    ) -> None:
+    ) -> list[Document]:
 
         if delay_seconds is not None and delay_seconds < 0:
             raise ValueError("delay_seconds must be non-negative")
+
+        raw_dir = Path(output_path) / "raw"
+        index_path = raw_dir / "documents.jsonl"
 
         crawler_classes = (WebCrawler, YouTubeCrawler)
         limiters = {
@@ -113,19 +124,34 @@ class CrawlRunner:
             for source_type, cap in max_concurrency.items()
         }
 
+        documents: list[Document] = []
+        documents_lock = threading.Lock()
+
         def _crawl_one(link: str) -> None:
             crawler_class = self._select_crawler_class(link)
             source_type = crawler_class.source_type
             if crawler_type is not None and source_type != crawler_type:
                 return
 
-            with semaphores[source_type]:
-                limiters[source_type].wait()
-                link_hash = hashlib.sha1(link.encode("utf-8")).hexdigest()[:12]
-                output_path = (
-                    BASE_DIR / "data/raw" / source_type / f"{link_hash}_text.txt"
-                )
-                self.crawl_link(link, output_path, crawler_type=crawler_type)
+            doc_id = hashlib.sha1(link.encode("utf-8")).hexdigest()[:12]
+            filename = f"{doc_id}_text.txt"
+            file_path = raw_dir / source_type / filename
+
+            if file_path.exists():
+                document = Document(doc_id=doc_id, url=link, path=filename, source_type=source_type)
+            else:
+                with semaphores[source_type]:
+                    limiters[source_type].wait()
+                    text = self.crawl_link(link, file_path, crawler_type=crawler_type)
+                if text is None:
+                    return
+                document = Document(doc_id=doc_id, url=link, path=filename, source_type=source_type)
+                _append_document(index_path, document)
+
+            with documents_lock:
+                documents.append(document)
 
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             list(pool.map(_crawl_one, links))
+
+        return documents

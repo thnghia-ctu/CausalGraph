@@ -2,7 +2,7 @@ import logging
 
 import pandas as pd
 
-from configs.config import UNIQUE_LINKS_PATH
+from configs.config import BASE_DIR, UNIQUE_LINKS_PATH
 from src.crawlers.crawl_runner import CrawlRunner
 
 
@@ -17,7 +17,7 @@ def main():
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     links = load_links(UNIQUE_LINKS_PATH)
-    CrawlRunner().crawl_links(links, crawler_type="web")  # Change to "web" for web crawling
+    CrawlRunner().crawl_links(links, output_path=BASE_DIR / "data", crawler_type="web")  # Change to "web" for web crawling
 
 
 if __name__ == "__main__":

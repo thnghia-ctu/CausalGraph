@@ -6,7 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 CAUSAL_TRIGGERS_PATH = BASE_DIR / "configs/causal_triggers.xlsx"
 KNOWLEDGE_BASE_PATH = BASE_DIR / "configs/knowledge/knowledge_base.xlsx"
 UNIQUE_LINKS_PATH = BASE_DIR / "data/links/unique_links.csv"
-MANIFEST_PATH = BASE_DIR / "data/raw/manifest.jsonl"
+DOCUMENTS_PATH = BASE_DIR / "data/raw/documents.jsonl"
+
+CACHE_DIR = BASE_DIR / "cache"
 
 CHUNKS_DIR = BASE_DIR / "data/chunks"
 FILTERED_CHUNKS_PATH = CHUNKS_DIR / "chunks_filtered.jsonl"

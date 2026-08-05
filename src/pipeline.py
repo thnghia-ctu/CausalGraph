@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.chunking.semantic_chunker import SemanticChunker
+from src.crawlers.crawl_runner import CrawlRunner
 from src.extraction.relation_extractor import RelationExtractor
 from src.extraction.svo_extractor import SVOExtractor
 from src.extraction.vncorenlp_parser import VnCoreNLPParser
@@ -10,8 +11,9 @@ from src.filtering.semantic_filter import filter_chunks
 from src.normalization.factor_normalizer import FactorNormalizer
 import src.utils.text_normalization as txn
 import src.utils.helpers as hlp
-from configs.config import BASE_DIR
+from configs.config import BASE_DIR, CACHE_DIR
 import traceback
+from src.data_models.document import Document
 from src.data_models.relation import Relation
 from src.data_models.normalized_factor import NormalizedFactor
 import networkx as nx
@@ -20,6 +22,7 @@ from src.graph.graph_visualizer import visualize_graph
 
 class Pipeline:
     def  __init__(self):
+        self.crawl_runner = CrawlRunner()
         self.chunker = SemanticChunker()
         self.relation_extractor = RelationExtractor()
         self.svo_extractor = SVOExtractor()
@@ -32,6 +35,9 @@ class Pipeline:
             "all_chunks": 0,
             "accept_chunks": 0,
         }
+
+    def crawl_data(self, urls: list[str], output_path: str | Path = CACHE_DIR) -> list[Document]:
+        return self.crawl_runner.crawl_links(urls, output_path=output_path)
 
     def prepare_text(self, text: str) -> str:
         chunks = [
