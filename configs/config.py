@@ -28,6 +28,7 @@ RELATIONS_REJECTED_PATH = LLM_RELATIONS_DIR / "relations_rejected.csv"
 
 SIMPLIFICATION_SENTENCES_PATH = BASE_DIR / "data/simplification/simplificated_sentences.csv"
 SIMPLIFIER_MODEL_DIR = BASE_DIR / "models/simplifier"
+SIMPLIFIER_HF_REPO_ID = "thnghia-ctu/vi-sentence-simplifier"
 
 SPO_TAGGER_MODEL_DIR = BASE_DIR / "models/spo_tagger"
 SPO_RELATIONS_PATH = BASE_DIR / "data/SPO/relations.csv"

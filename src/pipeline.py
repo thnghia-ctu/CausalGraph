@@ -12,6 +12,7 @@ from src.extraction.svo_extractor import SVOExtractor
 from src.extraction.vncorenlp_parser import VnCoreNLPParser
 from src.filtering.semantic_filter import filter_chunks
 from src.normalization.factor_normalizer import FactorNormalizer
+from src.simplification.simplifier_runner import SimplifierRunner
 import src.utils.text_normalization as txn
 import src.utils.helpers as hlp
 from configs.config import BASE_DIR, CACHE_DIR
@@ -21,6 +22,7 @@ from src.data_models.chunk import Chunk
 from src.data_models.document import Document
 from src.data_models.relation import Relation
 from src.data_models.normalized_factor import NormalizedFactor
+from src.data_models.simplified_sentence import SimplifiedSentence
 import networkx as nx
 from itertools import product
 from src.graph.graph_visualizer import visualize_graph
@@ -30,6 +32,7 @@ class Pipeline:
         self.crawl_runner = CrawlRunner()
         self.chunk_runner = ChunkRunner()
         self.causal_sentence_runner = CausalSentenceRunner(classifier=FastTextCausalClassifier.load())
+        self.simplifier_runner = SimplifierRunner()
         self.chunker = SemanticChunker()
         self.relation_extractor = RelationExtractor()
         self.svo_extractor = SVOExtractor()
@@ -55,6 +58,13 @@ class Pipeline:
         output_path: str | Path = CACHE_DIR,
     ) -> list[CausalSentence]:
         return self.causal_sentence_runner.build_causal_sentences(chunks, output_path=output_path)
+
+    def simplify_sentences(
+        self,
+        causal_sentences: list[CausalSentence],
+        output_path: str | Path = CACHE_DIR,
+    ) -> list[SimplifiedSentence]:
+        return self.simplifier_runner.simplify_sentences(causal_sentences, output_path=output_path)
 
     def prepare_text(self, text: str) -> str:
         chunks = [
