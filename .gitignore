@@ -12,6 +12,9 @@ cache/
 data/
 *_text.txt
 
+# App-created datasets (Streamlit tool)
+app/datasets/
+
 # Trained model artifacts
 models/
 

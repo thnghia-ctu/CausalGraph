@@ -22,3 +22,4 @@ sentencepiece
 accelerate
 datasets
 fasttext-wheel
+streamlit
