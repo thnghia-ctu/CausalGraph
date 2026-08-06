@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 
-from src.data_models.ref import SentenceRef
+from src.data_models.concept_factor import ConceptFactor
+from src.data_models.ref import SimpleRef
 
 @dataclass(frozen=True)
-class CausalSentence:
+class SpoRecord:
     sentence: str
-    weak_label: str
-    trigger: str
-    ref: SentenceRef
-    human_label: str
+    subject: ConceptFactor
+    predicate: str
+    object: ConceptFactor
+    ref: SimpleRef
 
     @property
     def doc_id(self) -> str:
@@ -25,3 +26,7 @@ class CausalSentence:
     @property
     def sentence_index(self) -> int:
         return self.ref.sentence_index
+
+    @property
+    def simple_index(self) -> int:
+        return self.ref.simple_index

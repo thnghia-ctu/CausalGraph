@@ -1,64 +1,22 @@
-import csv
-
-from src.extraction.svo_extractor import SVOExtractor
-from src.extraction.vncorenlp_parser import VnCoreNLPParser
-from configs.config import BASE_DIR
-
-PATH = BASE_DIR / "data" / "simplification" / "simplificated_sentences.csv"
+from src.pipeline import Pipeline
 
 
-def extract_svo(text: str, extractor: SVOExtractor) -> tuple[str, str, str]:
-    sentences = VnCoreNLPParser.parse_text(text)
-    if not sentences:
-        return "", "", ""
 
-    result = extractor.extract(sentences[0])
-    if result is None:
-        return "", "", ""
+pipeline = Pipeline()
+with open("input/ip.txt", encoding="utf-8") as file:
+    urls = [line.strip() for line in file if line.strip()]
 
-    subject = result.subject.text.replace("_", " ") if result.subject else ""
-    predicate = result.predicate.replace("_", " ")
-    obj = result.object.text.replace("_", " ") if result.object else ""
-    return subject, predicate, obj
+docs = pipeline.crawl_data(
+    urls=urls
+)
 
+chunks = pipeline.chunk_data(docs)
+sens = pipeline.detect_causal_sentences(chunks)
+simplified_sens = pipeline.simplify_sentences(sens)
+spo_records = pipeline.extract_spo(simplified_sens)
+concept_states = pipeline.extract_concept_states(spo_records)
+graph = pipeline.build_concept_graph(concept_states)
 
-def main():
-    with open(PATH, "r", encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f)
-        fieldnames = reader.fieldnames
-        rows = list(reader)
-
-    base_fieldnames = [name for name in fieldnames if name not in ("subject", "predicate", "object")]
-    new_fieldnames = []
-    for name in base_fieldnames:
-        new_fieldnames.append(name)
-        if name == "simple_sentence":
-            new_fieldnames.extend(["subject", "predicate", "object"])
-
-    extractor = SVOExtractor()
-    total = len(rows)
-
-    for i, row in enumerate(rows, start=1):
-        try:
-            subject, predicate, obj = extract_svo(row["simple_sentence"], extractor)
-        except Exception as e:
-            print(f"[{i}/{total}] error: {e}")
-            subject, predicate, obj = "", "", ""
-
-        row["subject"] = subject
-        row["predicate"] = predicate
-        row["object"] = obj
-
-        if i % 200 == 0 or i == total:
-            print(f"[{i}/{total}]")
-
-    with open(PATH, "w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=new_fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-    print(f"Done -> {PATH}")
-
-
-if __name__ == "__main__":
-    main()
+print(f"docs={len(docs)} chunks={len(chunks)} causal_sentences={len(sens)} simplified={len(simplified_sens)}")
+print(f"spo_records={len(spo_records)} concept_states={len(concept_states)}")
+print(f"graph nodes={graph.number_of_nodes()} edges={graph.number_of_edges()}")

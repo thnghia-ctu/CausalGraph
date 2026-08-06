@@ -31,10 +31,12 @@ SIMPLIFIER_MODEL_DIR = BASE_DIR / "models/simplifier"
 SIMPLIFIER_HF_REPO_ID = "thnghia-ctu/vi-sentence-simplifier"
 
 SPO_TAGGER_MODEL_DIR = BASE_DIR / "models/spo_tagger"
+SPO_TAGGER_HF_REPO_ID = "thnghia-ctu/vi-spo-tagger"
 SPO_RELATIONS_PATH = BASE_DIR / "data/SPO/relations.csv"
 SPO_PREDICTIONS_PATH = BASE_DIR / "data/SPO/relations_predicted.csv"
 
 CONCEPT_STATE_TAGGER_MODEL_DIR = BASE_DIR / "models/concept_state_tagger"
+CONCEPT_STATE_TAGGER_HF_REPO_ID = "thnghia-ctu/vi-concept-state-tagger"
 CONCEPT_STATE_RELATIONS_PATH = BASE_DIR / "data/concept_state/relations.csv"
 CONCEPT_STATE_PREDICTIONS_PATH = BASE_DIR / "data/concept_state/relations_predicted.csv"
 

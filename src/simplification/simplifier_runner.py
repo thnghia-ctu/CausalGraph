@@ -1,10 +1,10 @@
 import csv
 import logging
-from dataclasses import asdict
 from pathlib import Path
 
 from configs.config import CACHE_DIR, SIMPLIFIER_HF_REPO_ID, SIMPLIFIER_MODEL_DIR
 from src.data_models.causal_sentence import CausalSentence
+from src.data_models.ref import SimpleRef
 from src.data_models.simplified_sentence import SimplifiedSentence
 from src.simplification.seq2seq_simplifier import Seq2SeqSimplifier
 
@@ -37,11 +37,7 @@ class SimplifierRunner:
             SimplifiedSentence(
                 original_sentence=sentence.sentence,
                 simple_sentence=simple,
-                simple_index=simple_index,
-                chunk_id=sentence.chunk_id,
-                doc_id=sentence.doc_id,
-                url=sentence.url,
-                sentence_index=sentence.sentence_index,
+                ref=SimpleRef(sentence=sentence.ref, simple_index=simple_index),
             )
             for simple_index, simple in enumerate(simples)
         ]
@@ -71,7 +67,15 @@ class SimplifierRunner:
                     LOGGER.error("Lỗi tại câu (doc %s): %s", sentence.doc_id, error)
                     continue
 
-                writer.writerows(asdict(row) for row in rows)
+                writer.writerows({
+                    "original_sentence": row.original_sentence,
+                    "simple_sentence": row.simple_sentence,
+                    "simple_index": row.simple_index,
+                    "chunk_id": row.chunk_id,
+                    "doc_id": row.doc_id,
+                    "url": row.url,
+                    "sentence_index": row.sentence_index,
+                } for row in rows)
                 f.flush()
 
                 all_rows.extend(rows)

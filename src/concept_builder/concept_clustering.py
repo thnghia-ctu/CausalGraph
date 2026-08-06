@@ -1,6 +1,7 @@
 from collections import Counter
 from collections.abc import Sequence
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering
@@ -10,6 +11,10 @@ from src.utils.text_normalization import normalize_surface
 
 CLUSTER_COLUMNS = ("concept_candidate", "count", "cluster")
 CONCEPT_COLUMNS = ("concept_id", "representative_label", "members")
+
+MIN_SENTENCE_COUNT = 2
+MAX_SAMPLE_RELATIONS = 20
+RELATION_DETAIL_COLUMNS = ["subject_text", "predicate", "object_text", "original_sentence", "url"]
 
 
 def cluster_concepts(
@@ -106,3 +111,34 @@ def build_concepts_from_relations(
     concepts = build_concept_table(clustered)
     relations_with_ids = assign_concept_ids(relations, concepts)
     return relations_with_ids, concepts
+
+
+def build_graph_from_relations(
+    relations_with_ids: pd.DataFrame,
+    concepts: pd.DataFrame,
+    *,
+    min_sentence_count: int = MIN_SENTENCE_COUNT,
+    max_sample_relations: int = MAX_SAMPLE_RELATIONS,
+) -> nx.DiGraph:
+    labels = dict(zip(concepts["concept_id"], concepts["representative_label"]))
+
+    relations = relations_with_ids.dropna(subset=["source_concept_id", "target_concept_id"])
+    grouped = relations.groupby(["source_concept_id", "target_concept_id"])
+    edge_stats = grouped.agg(
+        relation_count=("original_sentence", "size"),
+        sentence_count=("original_sentence", "nunique"),
+    ).reset_index()
+    edges = edge_stats[edge_stats["sentence_count"] >= min_sentence_count]
+
+    graph = nx.DiGraph()
+    for source_id, target_id, relation_count, sentence_count in edges.itertuples(index=False):
+        rows = grouped.get_group((source_id, target_id)).head(max_sample_relations)
+        details = rows[RELATION_DETAIL_COLUMNS].to_dict("records")
+        graph.add_edge(
+            labels.get(source_id, source_id),
+            labels.get(target_id, target_id),
+            relation=f"{sentence_count} câu nguồn độc lập ({relation_count} quan hệ)",
+            score=sentence_count,
+            relations=details,
+        )
+    return graph

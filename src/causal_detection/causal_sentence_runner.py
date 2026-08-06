@@ -1,6 +1,5 @@
 import csv
 import logging
-from dataclasses import asdict
 from pathlib import Path
 from typing import Protocol
 
@@ -10,6 +9,7 @@ from configs.config import CACHE_DIR
 from src.causal_detection.trigger_classifier import TriggerCausalClassifier
 from src.data_models.causal_sentence import CausalSentence
 from src.data_models.chunk import Chunk
+from src.data_models.ref import SentenceRef
 
 
 LOGGER = logging.getLogger(__name__)
@@ -49,10 +49,7 @@ class CausalSentenceRunner:
                 sentence=sentence,
                 weak_label=label,
                 trigger=triggers[0] if triggers else "",
-                chunk_id=chunk.chunk_id,
-                doc_id=chunk.doc_id,
-                url=chunk.url,
-                sentence_index=sentence_index,
+                ref=SentenceRef(chunk=chunk.ref, sentence_index=sentence_index),
                 human_label="",
             ))
 
@@ -81,7 +78,16 @@ class CausalSentenceRunner:
                     LOGGER.error("Lỗi tại chunk %s: %s", chunk.chunk_id, error)
                     continue
 
-                writer.writerows(asdict(row) for row in rows)
+                writer.writerows({
+                    "sentence": row.sentence,
+                    "weak_label": row.weak_label,
+                    "trigger": row.trigger,
+                    "chunk_id": row.chunk_id,
+                    "doc_id": row.doc_id,
+                    "url": row.url,
+                    "sentence_index": row.sentence_index,
+                    "human_label": row.human_label,
+                } for row in rows)
                 f.flush()
 
                 all_rows.extend(rows)

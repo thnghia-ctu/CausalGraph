@@ -6,16 +6,20 @@ from src.causal_detection.fasttext_classifier import FastTextCausalClassifier
 from src.causal_detection.causal_sentence_runner import CausalSentenceRunner
 from src.chunking.chunk_runner import ChunkRunner
 from src.chunking.semantic_chunker import SemanticChunker
+from src.concept_builder.concept_clustering import MIN_SENTENCE_COUNT
 from src.crawlers.crawl_runner import CrawlRunner
+from src.extraction.concept_state_runner import ConceptStateRunner
 from src.extraction.relation_extractor import RelationExtractor
+from src.extraction.spo_runner import SpoRunner
 from src.extraction.svo_extractor import SVOExtractor
 from src.extraction.vncorenlp_parser import VnCoreNLPParser
 from src.filtering.semantic_filter import filter_chunks
+from src.graph.graph_runner import GraphRunner
 from src.normalization.factor_normalizer import FactorNormalizer
 from src.simplification.simplifier_runner import SimplifierRunner
 import src.utils.text_normalization as txn
 import src.utils.helpers as hlp
-from configs.config import BASE_DIR, CACHE_DIR
+from configs.config import BASE_DIR, CACHE_DIR, CONCEPT_CLUSTER_DISTANCE_THRESHOLD
 import traceback
 from src.data_models.causal_sentence import CausalSentence
 from src.data_models.chunk import Chunk
@@ -23,6 +27,7 @@ from src.data_models.document import Document
 from src.data_models.relation import Relation
 from src.data_models.normalized_factor import NormalizedFactor
 from src.data_models.simplified_sentence import SimplifiedSentence
+from src.data_models.spo_record import SpoRecord
 import networkx as nx
 from itertools import product
 from src.graph.graph_visualizer import visualize_graph
@@ -33,6 +38,8 @@ class Pipeline:
         self.chunk_runner = ChunkRunner()
         self.causal_sentence_runner = CausalSentenceRunner(classifier=FastTextCausalClassifier.load())
         self.simplifier_runner = SimplifierRunner()
+        self.spo_runner = SpoRunner()
+        self.concept_state_runner = ConceptStateRunner()
         self.chunker = SemanticChunker()
         self.relation_extractor = RelationExtractor()
         self.svo_extractor = SVOExtractor()
@@ -40,6 +47,7 @@ class Pipeline:
         self.factor_normalizer = FactorNormalizer.from_vocabulary_xlsx(
             BASE_DIR / "configs" / "controlled_concept_vocabulary.xlsx",
         )
+        self.graph_runner = GraphRunner()
         self.stats = {
             "article_count": 0,
             "all_chunks": 0,
@@ -65,6 +73,34 @@ class Pipeline:
         output_path: str | Path = CACHE_DIR,
     ) -> list[SimplifiedSentence]:
         return self.simplifier_runner.simplify_sentences(causal_sentences, output_path=output_path)
+
+    def extract_spo(
+        self,
+        simplified_sentences: list[SimplifiedSentence],
+        output_path: str | Path = CACHE_DIR,
+    ) -> list[SpoRecord]:
+        return self.spo_runner.extract_spo(simplified_sentences, output_path=output_path)
+
+    def extract_concept_states(
+        self,
+        spo_records: list[SpoRecord],
+        output_path: str | Path = CACHE_DIR,
+    ) -> list[SpoRecord]:
+        return self.concept_state_runner.extract_concept_states(spo_records, output_path=output_path)
+
+    def build_concept_graph(
+        self,
+        spo_records: list[SpoRecord],
+        output_path: str | Path = CACHE_DIR,
+        distance_threshold: float = CONCEPT_CLUSTER_DISTANCE_THRESHOLD,
+        min_sentence_count: int = MIN_SENTENCE_COUNT,
+    ) -> nx.DiGraph:
+        return self.graph_runner.build_graph(
+            spo_records,
+            output_path=output_path,
+            distance_threshold=distance_threshold,
+            min_sentence_count=min_sentence_count,
+        )
 
     def prepare_text(self, text: str) -> str:
         chunks = [
