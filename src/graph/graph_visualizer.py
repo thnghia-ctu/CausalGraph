@@ -23,6 +23,9 @@ CLICK_PANEL_HTML = r"""
     rels.forEach(function (r) {
       html += "<hr><b>" + r.subject_text + "</b> — " + r.predicate +
               " — <b>" + r.object_text + "</b><br><i>" + r.original_sentence + "</i>";
+      if (r.simple_sentence && r.simple_sentence !== r.original_sentence) {
+        html += "<br><small>(" + r.simple_sentence + ")</small>";
+      }
       if (r.url) {
         html += "<br><a href='" + textFragmentUrl(r.url, r.original_sentence) +
                 "' target='_blank' rel='noopener'>🔗 Xem nguồn</a>";

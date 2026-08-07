@@ -5,6 +5,7 @@ from pathlib import Path
 
 from configs.config import CACHE_DIR, CONCEPT_STATE_TAGGER_HF_REPO_ID, CONCEPT_STATE_TAGGER_MODEL_DIR
 from src.data_models.concept_factor import ConceptFactor
+from src.data_models.ref import ChunkRef, DocRef, SentenceRef, SimpleRef
 from src.data_models.spo_record import SpoRecord
 from src.extraction.phobert_concept_state_tagger import PhoBertConceptStateTagger
 from src.normalization.state_normalizer import StateNormalizer
@@ -15,6 +16,7 @@ LOGGER = logging.getLogger(__name__)
 
 FIELDNAMES = [
     "sentence",
+    "original_sentence",
     "subject_factor_text",
     "subject_concept_candidate",
     "subject_state",
@@ -32,6 +34,45 @@ FIELDNAMES = [
     "sentence_index",
     "simple_index",
 ]
+
+
+def _factor_from_row(row: dict, prefix: str) -> ConceptFactor:
+    return ConceptFactor(
+        factor_text=row[f"{prefix}_factor_text"],
+        concept_candidate=row[f"{prefix}_concept_candidate"],
+        state=row[f"{prefix}_state"],
+        state_value=row[f"{prefix}_state_value"],
+        negated=row[f"{prefix}_negated"] == "True",
+    )
+
+
+def load_concept_states(output_path: str | Path = CACHE_DIR) -> list[SpoRecord]:
+    csv_path = Path(output_path) / "concept_state" / "concept_state_relations.csv"
+    if not csv_path.exists():
+        return []
+
+    records: list[SpoRecord] = []
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f, delimiter=";"):
+            ref = SimpleRef(
+                sentence=SentenceRef(
+                    chunk=ChunkRef(
+                        doc=DocRef(doc_id=row["doc_id"], url=row["url"]),
+                        chunk_id=row["chunk_id"],
+                    ),
+                    sentence_index=int(row["sentence_index"]),
+                ),
+                simple_index=int(row["simple_index"]),
+            )
+            records.append(SpoRecord(
+                sentence=row["sentence"],
+                original_sentence=row.get("original_sentence", ""),
+                subject=_factor_from_row(row, "subject"),
+                predicate=row["predicate"],
+                object=_factor_from_row(row, "object"),
+                ref=ref,
+            ))
+    return records
 
 
 class ConceptStateRunner:
@@ -98,6 +139,7 @@ class ConceptStateRunner:
 
                 writer.writerow({
                     "sentence": enriched.sentence,
+                    "original_sentence": enriched.original_sentence,
                     "subject_factor_text": enriched.subject.factor_text,
                     "subject_concept_candidate": enriched.subject.concept_candidate,
                     "subject_state": enriched.subject.state,

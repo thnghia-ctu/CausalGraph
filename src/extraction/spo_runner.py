@@ -13,6 +13,7 @@ LOGGER = logging.getLogger(__name__)
 
 FIELDNAMES = [
     "sentence",
+    "original_sentence",
     "subject",
     "predicate",
     "object",
@@ -39,6 +40,7 @@ class SpoRunner:
 
         return SpoRecord(
             sentence=sentence.simple_sentence,
+            original_sentence=sentence.original_sentence,
             subject=ConceptFactor(
                 factor_text=triple.subject.text.replace("_", " ") if triple.subject else "",
             ),
@@ -77,6 +79,7 @@ class SpoRunner:
 
                 writer.writerow({
                     "sentence": record.sentence,
+                    "original_sentence": record.original_sentence,
                     "subject": record.subject.factor_text,
                     "predicate": record.predicate,
                     "object": record.object.factor_text,

@@ -10,6 +10,7 @@ class SpoRecord:
     predicate: str
     object: ConceptFactor
     ref: SimpleRef
+    original_sentence: str = ""
 
     @property
     def doc_id(self) -> str:

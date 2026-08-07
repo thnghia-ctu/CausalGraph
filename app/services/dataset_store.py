@@ -23,12 +23,15 @@ STATUS_LABELS = {
 }
 
 
+URLS_FILENAME = "urls.txt"
+
+
 @dataclass
 class DatasetMeta:
     id: str
     name: str
     created_at: str
-    source_urls: list[str] = field(default_factory=list)
+    source_url_count: int = 0
     status: str = STATUS_NEW
     error: str = ""
     stage_counts: dict[str, int] = field(default_factory=dict)
@@ -49,17 +52,32 @@ def _meta_path(dataset_id: str) -> Path:
     return dataset_dir(dataset_id) / "meta.json"
 
 
+def _urls_path(dataset_id: str) -> Path:
+    return dataset_dir(dataset_id) / URLS_FILENAME
+
+
 def create_dataset(name: str, source_urls: list[str]) -> DatasetMeta:
     dataset_id = f"{_slugify(name)}-{uuid.uuid4().hex[:8]}"
+    dataset_dir(dataset_id).mkdir(parents=True, exist_ok=True)
+
+    if source_urls:
+        _urls_path(dataset_id).write_text("\n".join(source_urls) + "\n", encoding="utf-8")
+
     meta = DatasetMeta(
         id=dataset_id,
         name=name,
         created_at=datetime.now(timezone.utc).isoformat(),
-        source_urls=source_urls,
+        source_url_count=len(source_urls),
     )
-    dataset_dir(dataset_id).mkdir(parents=True, exist_ok=True)
     save_meta(meta)
     return meta
+
+
+def load_source_urls(dataset_id: str) -> list[str]:
+    path = _urls_path(dataset_id)
+    if not path.exists():
+        return []
+    return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def save_meta(meta: DatasetMeta) -> None:

@@ -14,7 +14,9 @@ CONCEPT_COLUMNS = ("concept_id", "representative_label", "members")
 
 MIN_SENTENCE_COUNT = 2
 MAX_SAMPLE_RELATIONS = 20
-RELATION_DETAIL_COLUMNS = ["subject_text", "predicate", "object_text", "original_sentence", "url"]
+RELATION_DETAIL_COLUMNS = [
+    "subject_text", "predicate", "object_text", "original_sentence", "simple_sentence", "url",
+]
 
 
 def cluster_concepts(
@@ -125,8 +127,8 @@ def build_graph_from_relations(
     relations = relations_with_ids.dropna(subset=["source_concept_id", "target_concept_id"])
     grouped = relations.groupby(["source_concept_id", "target_concept_id"])
     edge_stats = grouped.agg(
-        relation_count=("original_sentence", "size"),
-        sentence_count=("original_sentence", "nunique"),
+        relation_count=("simple_sentence", "size"),
+        sentence_count=("simple_sentence", "nunique"),
     ).reset_index()
     edges = edge_stats[edge_stats["sentence_count"] >= min_sentence_count]
 

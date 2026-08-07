@@ -5,6 +5,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.crawlers.crawl_runner import load_documents
 from src.data_models.spo_record import SpoRecord
 from src.pipeline import Pipeline
 
@@ -35,7 +36,8 @@ class PipelineService:
             if on_progress is not None:
                 on_progress(stage_key, count)
 
-        docs = self._pipeline.crawl_data(urls, output_path=dataset_dir)
+        self._pipeline.crawl_data(urls, output_path=dataset_dir)
+        docs = load_documents(dataset_dir)
         report("crawl", len(docs))
 
         chunks = self._pipeline.chunk_data(docs, output_path=dataset_dir)
