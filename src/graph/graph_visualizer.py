@@ -25,7 +25,7 @@ def visualize_graph(graph, path):
 
 
 def _build_network(graph):
-    net = Network(notebook=True, directed=True)
+    net = Network(notebook=True, directed=True, cdn_resources="in_line")
     sizes = _node_sizes(graph)
 
     for node, data in graph.nodes(data=True):
