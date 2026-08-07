@@ -1,22 +1,25 @@
+from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from src.causal_detection.fasttext_classifier import FastTextCausalClassifier
-from src.causal_detection.causal_sentence_runner import CausalSentenceRunner
+if TYPE_CHECKING:
+    from src.causal_detection.causal_sentence_runner import CausalSentenceRunner
+    from src.extraction.concept_state_runner import ConceptStateRunner
+    from src.extraction.spo_runner import SpoRunner
+    from src.simplification.simplifier_runner import SimplifierRunner
+
 from src.chunking.chunk_runner import ChunkRunner
 from src.chunking.semantic_chunker import SemanticChunker
 from src.concept_builder.concept_clustering import MIN_SENTENCE_COUNT
 from src.crawlers.crawl_runner import CrawlRunner
-from src.extraction.concept_state_runner import ConceptStateRunner
 from src.extraction.relation_extractor import RelationExtractor
-from src.extraction.spo_runner import SpoRunner
 from src.extraction.svo_extractor import SVOExtractor
 from src.extraction.vncorenlp_parser import VnCoreNLPParser
 from src.filtering.semantic_filter import filter_chunks
 from src.graph.graph_runner import GraphRunner
 from src.normalization.factor_normalizer import FactorNormalizer
-from src.simplification.simplifier_runner import SimplifierRunner
 import src.utils.text_normalization as txn
 import src.utils.helpers as hlp
 from configs.config import BASE_DIR, CACHE_DIR, CONCEPT_CLUSTER_DISTANCE_THRESHOLD
@@ -34,25 +37,66 @@ from src.graph.graph_visualizer import visualize_graph
 
 class Pipeline:
     def  __init__(self):
-        self.crawl_runner = CrawlRunner()
-        self.chunk_runner = ChunkRunner()
-        self.causal_sentence_runner = CausalSentenceRunner(classifier=FastTextCausalClassifier.load())
-        self.simplifier_runner = SimplifierRunner()
-        self.spo_runner = SpoRunner()
-        self.concept_state_runner = ConceptStateRunner()
-        self.chunker = SemanticChunker()
-        self.relation_extractor = RelationExtractor()
-        self.svo_extractor = SVOExtractor()
-        # self.factor_normalizer = FactorNormalizer()
-        self.factor_normalizer = FactorNormalizer.from_vocabulary_xlsx(
-            BASE_DIR / "configs" / "controlled_concept_vocabulary.xlsx",
-        )
-        self.graph_runner = GraphRunner()
         self.stats = {
             "article_count": 0,
             "all_chunks": 0,
             "accept_chunks": 0,
         }
+
+    @cached_property
+    def crawl_runner(self) -> CrawlRunner:
+        return CrawlRunner()
+
+    @cached_property
+    def chunk_runner(self) -> ChunkRunner:
+        return ChunkRunner()
+
+    @cached_property
+    def causal_sentence_runner(self) -> "CausalSentenceRunner":
+        from src.causal_detection.causal_sentence_runner import CausalSentenceRunner
+        from src.causal_detection.fasttext_classifier import FastTextCausalClassifier
+
+        return CausalSentenceRunner(classifier=FastTextCausalClassifier.load())
+
+    @cached_property
+    def simplifier_runner(self) -> "SimplifierRunner":
+        from src.simplification.simplifier_runner import SimplifierRunner
+
+        return SimplifierRunner()
+
+    @cached_property
+    def spo_runner(self) -> "SpoRunner":
+        from src.extraction.spo_runner import SpoRunner
+
+        return SpoRunner()
+
+    @cached_property
+    def concept_state_runner(self) -> "ConceptStateRunner":
+        from src.extraction.concept_state_runner import ConceptStateRunner
+
+        return ConceptStateRunner()
+
+    @cached_property
+    def chunker(self) -> SemanticChunker:
+        return SemanticChunker()
+
+    @cached_property
+    def relation_extractor(self) -> RelationExtractor:
+        return RelationExtractor()
+
+    @cached_property
+    def svo_extractor(self) -> SVOExtractor:
+        return SVOExtractor()
+
+    @cached_property
+    def factor_normalizer(self) -> FactorNormalizer:
+        return FactorNormalizer.from_vocabulary_xlsx(
+            BASE_DIR / "configs" / "controlled_concept_vocabulary.xlsx",
+        )
+
+    @cached_property
+    def graph_runner(self) -> GraphRunner:
+        return GraphRunner()
 
     def crawl_data(self, urls: list[str], output_path: str | Path = CACHE_DIR) -> list[Document]:
         return self.crawl_runner.crawl_links(urls, output_path=output_path)

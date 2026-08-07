@@ -16,6 +16,7 @@ MIN_SENTENCE_COUNT = 2
 MAX_SAMPLE_RELATIONS = 20
 RELATION_DETAIL_COLUMNS = [
     "subject_text", "predicate", "object_text", "original_sentence", "simple_sentence", "url",
+    "source_direction", "target_direction",
 ]
 
 
@@ -115,31 +116,16 @@ def build_concepts_from_relations(
     return relations_with_ids, concepts
 
 
-def classify_concept_directions(
-    relations_with_ids: pd.DataFrame,
-    concepts: pd.DataFrame,
-) -> dict[str, str]:
-    directions: dict[str, set[int]] = {concept_id: set() for concept_id in concepts["concept_id"]}
-    for concept_id, direction in zip(relations_with_ids["source_concept_id"], relations_with_ids["source_direction"]):
-        if concept_id in directions:
-            directions[concept_id].add(direction)
-    for concept_id, direction in zip(relations_with_ids["target_concept_id"], relations_with_ids["target_direction"]):
-        if concept_id in directions:
-            directions[concept_id].add(direction)
-
-    categories = {}
-    for concept_id, seen in directions.items():
-        has_positive = 1 in seen
-        has_negative = -1 in seen
-        if has_positive and has_negative:
-            categories[concept_id] = "conflict"
-        elif has_positive:
-            categories[concept_id] = "positive"
-        elif has_negative:
-            categories[concept_id] = "negative"
-        else:
-            categories[concept_id] = "neutral"
-    return categories
+def _direction_category(seen: set[int]) -> str:
+    has_positive = 1 in seen
+    has_negative = -1 in seen
+    if has_positive and has_negative:
+        return "conflict"
+    if has_positive:
+        return "positive"
+    if has_negative:
+        return "negative"
+    return "neutral"
 
 
 def build_graph_from_relations(
@@ -150,7 +136,6 @@ def build_graph_from_relations(
     max_sample_relations: int = MAX_SAMPLE_RELATIONS,
 ) -> nx.DiGraph:
     labels = dict(zip(concepts["concept_id"], concepts["representative_label"]))
-    direction_categories = classify_concept_directions(relations_with_ids, concepts)
 
     relations = relations_with_ids.dropna(subset=["source_concept_id", "target_concept_id"])
     grouped = relations.groupby(["source_concept_id", "target_concept_id"])
@@ -161,6 +146,7 @@ def build_graph_from_relations(
     edges = edge_stats[edge_stats["sentence_count"] >= min_sentence_count]
 
     graph = nx.DiGraph()
+    directions: dict[str, set[int]] = {}
     for source_id, target_id, relation_count, sentence_count in edges.itertuples(index=False):
         rows = grouped.get_group((source_id, target_id)).head(max_sample_relations)
         details = rows[RELATION_DETAIL_COLUMNS].to_dict("records")
@@ -171,10 +157,13 @@ def build_graph_from_relations(
             score=sentence_count,
             relations=details,
         )
+        for detail in details:
+            directions.setdefault(source_id, set()).add(detail["source_direction"])
+            directions.setdefault(target_id, set()).add(detail["target_direction"])
 
     node_categories = {
-        labels.get(concept_id, concept_id): category
-        for concept_id, category in direction_categories.items()
+        labels.get(concept_id, concept_id): _direction_category(seen)
+        for concept_id, seen in directions.items()
         if labels.get(concept_id, concept_id) in graph.nodes
     }
     nx.set_node_attributes(graph, node_categories, "direction_state")

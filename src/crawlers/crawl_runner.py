@@ -14,7 +14,6 @@ from src.data_models.document import Document
 
 from .base_crawler import BaseCrawler
 from .web_crawler import WebCrawler
-from .youtube_crawler import YouTubeCrawler
 
 
 LOGGER = logging.getLogger(__name__)
@@ -59,6 +58,8 @@ class CrawlRunner:
         normalized_url = url.lower()
 
         if "youtube.com" in normalized_url or "youtu.be" in normalized_url:
+            from .youtube_crawler import YouTubeCrawler
+
             return YouTubeCrawler
 
         return WebCrawler
