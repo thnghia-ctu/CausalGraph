@@ -4,6 +4,7 @@
   <button onclick="document.getElementById('graph-detail').style.display='none'">✕</button>
   <div id="graph-detail-body"></div>
 </div>
+<button id="focus-reset" onclick="exitFocus()">↺ Bỏ focus</button>
 <style>
   .detail-section { margin-top:14px; padding:8px 10px; border-left:4px solid; border-radius:4px; }
   .detail-section h4 { margin:0 0 4px 0; }
@@ -13,6 +14,9 @@
   .relation-item { margin-top:8px; padding-top:8px; border-top:1px dashed #ccc; }
   .relation-item:first-child { margin-top:0; padding-top:0; border-top:none; }
   .relation-title { font-weight:bold; font-size:14px; }
+  #focus-reset { position:fixed; left:12px; top:12px; z-index:9999; display:none;
+    font-family:sans-serif; font-size:13px; padding:6px 10px; cursor:pointer;
+    background:#fff; border:1px solid #ccc; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.15); }
 </style>
 <script>
   function textFragmentUrl(url, sentence) {
@@ -98,11 +102,43 @@
     document.getElementById("graph-detail").style.display = "block";
   }
 
+  function focusNode(nodeId) {
+    var keepNodes = new Set(network.getConnectedNodes(nodeId));
+    keepNodes.add(nodeId);
+    var keepEdges = new Set(network.getConnectedEdges(nodeId));
+
+    nodes.update(nodes.getIds().map(function (id) {
+      return { id: id, hidden: !keepNodes.has(id) };
+    }));
+    edges.update(edges.getIds().map(function (id) {
+      return { id: id, hidden: !keepEdges.has(id) };
+    }));
+
+    document.getElementById("focus-reset").style.display = "block";
+    showDetail(renderNodeDetail(nodeId));
+  }
+
+  function exitFocus() {
+    nodes.update(nodes.getIds().map(function (id) {
+      return { id: id, hidden: false };
+    }));
+    edges.update(edges.getIds().map(function (id) {
+      return { id: id, hidden: false };
+    }));
+    document.getElementById("focus-reset").style.display = "none";
+  }
+
   network.on("click", function (params) {
     if (params.nodes.length > 0) {
       showDetail(renderNodeDetail(params.nodes[0]));
     } else if (params.edges.length > 0) {
       showDetail(renderEdgeDetail(params.edges[0]));
+    }
+  });
+
+  network.on("doubleClick", function (params) {
+    if (params.nodes.length > 0) {
+      focusNode(params.nodes[0]);
     }
   });
 </script>
