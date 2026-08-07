@@ -2,6 +2,13 @@ from pathlib import Path
 
 from pyvis.network import Network
 
+DIRECTION_COLORS = {
+    "positive": "#2ecc71",
+    "negative": "#f1c40f",
+    "conflict": "#e74c3c",
+    "neutral": "#3498db",
+}
+
 CLICK_PANEL_HTML = r"""
 <div id="edge-detail" style="position:fixed;right:0;top:0;width:360px;height:100%;
      overflow-y:auto;background:#fff;border-left:1px solid #ccc;padding:12px;
@@ -40,8 +47,9 @@ CLICK_PANEL_HTML = r"""
 
 def visualize_graph(graph, path):
     net = Network(notebook=True, directed=True)
-    for node in graph.nodes():
-        net.add_node(node, label=node, title=node)
+    for node, data in graph.nodes(data=True):
+        color = DIRECTION_COLORS.get(data.get("direction_state"), DIRECTION_COLORS["neutral"])
+        net.add_node(node, label=node, title=node, color=color)
     for source, target, data in graph.edges(data=True):
         relation = data.get('relation', '')
         score = data.get('score', 0)

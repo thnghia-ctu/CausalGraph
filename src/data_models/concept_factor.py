@@ -8,3 +8,4 @@ class ConceptFactor:
     state: str = ""
     state_value: str = ""
     negated: bool = False
+    direction: int = 0

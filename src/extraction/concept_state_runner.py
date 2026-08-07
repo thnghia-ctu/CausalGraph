@@ -22,12 +22,14 @@ FIELDNAMES = [
     "subject_state",
     "subject_state_value",
     "subject_negated",
+    "subject_direction",
     "predicate",
     "object_factor_text",
     "object_concept_candidate",
     "object_state",
     "object_state_value",
     "object_negated",
+    "object_direction",
     "chunk_id",
     "doc_id",
     "url",
@@ -43,6 +45,7 @@ def _factor_from_row(row: dict, prefix: str) -> ConceptFactor:
         state=row[f"{prefix}_state"],
         state_value=row[f"{prefix}_state_value"],
         negated=row[f"{prefix}_negated"] == "True",
+        direction=int(row[f"{prefix}_direction"]),
     )
 
 
@@ -105,6 +108,7 @@ class ConceptStateRunner:
             state=state_text,
             state_value=state_match.value if state_match else "",
             negated=state_match.state.negated if state_match else False,
+            direction=state_match.state.direction if state_match else 0,
         )
 
     def enrich_spo_record(self, record: SpoRecord) -> SpoRecord:
@@ -145,12 +149,14 @@ class ConceptStateRunner:
                     "subject_state": enriched.subject.state,
                     "subject_state_value": enriched.subject.state_value,
                     "subject_negated": enriched.subject.negated,
+                    "subject_direction": enriched.subject.direction,
                     "predicate": enriched.predicate,
                     "object_factor_text": enriched.object.factor_text,
                     "object_concept_candidate": enriched.object.concept_candidate,
                     "object_state": enriched.object.state,
                     "object_state_value": enriched.object.state_value,
                     "object_negated": enriched.object.negated,
+                    "object_direction": enriched.object.direction,
                     "chunk_id": enriched.chunk_id,
                     "doc_id": enriched.doc_id,
                     "url": enriched.url,

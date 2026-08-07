@@ -37,6 +37,21 @@ STATE_CATEGORY_BY_VALUE: dict[StateValue, StateCategory] = {
     "UNAVAILABLE": "CONDITION",
 }
 
+STATE_DIRECTION_BY_VALUE: dict[StateValue, int] = {
+    "INCREASE": 1,
+    "DECREASE": -1,
+    "IMPROVE": 1,
+    "DETERIORATE": -1,
+    "HIGH": 1,
+    "LOW": -1,
+    "LACK": -1,
+    "SUFFICIENT": 1,
+    "LIMITED": -1,
+    "DIFFICULT": -1,
+    "AVAILABLE": 1,
+    "UNAVAILABLE": -1,
+}
+
 
 @dataclass(frozen=True)
 class State:
@@ -44,3 +59,9 @@ class State:
     value: StateValue
     expression: str
     negated: bool = False
+
+    @property
+    def direction(self) -> int:
+        if self.negated:
+            return 0
+        return STATE_DIRECTION_BY_VALUE.get(self.value, 0)
