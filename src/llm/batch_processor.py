@@ -1,162 +1,27 @@
 import csv
 import json
+import re
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from string import Template
-from typing import Any
+from typing import Any, Callable
 
 from src.llm.base import LLMClient
 
-PROMPT = Template("""
-Bạn là một chuyên gia xử lý ngôn ngữ tiếng Việt.
 
-## Nhiệm vụ
+FlattenFn = Callable[[list[dict[str, str]], list[dict[str, Any]]], list[dict[str, Any]]]
 
-Với mỗi câu trong danh sách đầu vào, thực hiện các bước sau:
-
-### 1. Tách câu phức thành câu đơn
-
-* Tách câu có nhiều hành động, kết quả hoặc quan hệ thành nhiều câu đơn.
-
-* Mỗi câu đơn chỉ biểu diễn một quan hệ:
-
-  Subject --Predicate--> Object
-
-* Phải bảo toàn toàn bộ ý nghĩa của câu gốc.
-
-* Không được thêm thông tin không có trong câu gốc.
-
-* Không được làm mất các thông tin về số lượng, tỷ lệ, mức độ hoặc đối tượng.
-
-* Khi câu có các dấu hiệu như “từ đó”, “do đó”, “nhờ vậy”, phải giữ đúng quan hệ giữa kết quả trước và hệ quả sau.
-
-* Không được biến hệ quả gián tiếp thành tác động trực tiếp.
-
-### 2. Trích xuất cấu trúc S-P-O
-
-Với mỗi câu đơn, xác định `subject`, `predicate`, `object`.
-
-`subject.text` và `object.text` phải là các cụm từ xuất hiện nguyên văn trong câu đơn (hoặc cách diễn đạt tối thiểu cần thiết để bảo toàn tham chiếu của câu gốc).
-
-### 3. Phân tích concept_candidate và state
-
-Từ `subject.text` và `object.text`, xác định:
-
-* `concept_candidate`: thực thể, hiện tượng hoặc khái niệm chính, phải là một cụm con nằm trong `text` tương ứng.
-* `state`: trạng thái, xu hướng, mức độ, số lượng hoặc thuộc tính đang được mô tả cho concept_candidate.
-
-Ví dụ:
-
-* `text`: `"giảm công_sức lao_động"`
-  → `concept_candidate`: `"công_sức lao_động"`
-  → `state`: `"giảm"`
-
-* `text`: `"tăng năng_suất 30%"`
-  → `concept_candidate`: `"năng_suất"`
-  → `state`: `"tăng 30%"`
-
-* `text`: `"những ứng_dụng này"`
-  → `concept_candidate`: `"ứng_dụng"`
-  → `state`: `null`
-
-Nếu không xác định được state, trả về `null`.
-
-Giữ nguyên phủ định trong `state`, không suy diễn thành chiều ngược lại (vd: `"không tăng"` phải giữ nguyên là `"không tăng"`, không được đổi thành `"giảm"`).
-
-## Đầu vào
-
-$sentences
-
-## Định dạng đầu ra
-
-Chỉ trả về một mảng JSON hợp lệ theo đúng schema sau:
-
-[
-  {
-    "original_sentence": "...",
-    "simple_sentences": [
-      {
-        "sentence": "...",
-        "subject": {
-          "text": "...",
-          "concept_candidate": "...",
-          "state": null
-        },
-        "predicate": "...",
-        "object": {
-          "text": "...",
-          "concept_candidate": "...",
-          "state": "..."
-        }
-      }
-    ]
-  }
-]
-
-## Quy tắc bắt buộc
-
-* Mỗi phần tử đầu ra tương ứng với đúng một câu đầu vào.
-* Giữ nguyên thứ tự các câu đầu vào.
-* `original_sentence` phải giữ nguyên nội dung câu đầu vào.
-* `simple_sentences` luôn là một mảng.
-* Luôn có đầy đủ tất cả các field trong schema.
-* Dùng JSON `null` khi giá trị không tồn tại hoặc không xác định được.
-* Không dùng chuỗi `"None"`, `"null"` hoặc chuỗi rỗng để thay cho `null`.
-* Không giải thích kết quả.
-* Không thêm nhận xét.
-* Không thêm Markdown.
-* Không đặt JSON trong khối mã.
-* Không thêm bất kỳ nội dung nào trước hoặc sau mảng JSON.
-
-""")
-
-CSV_FIELDS = [
-    "doc_id",
-    "url",
-    "original_sentence",
-    "simple_sentence",
-    "subject_text",
-    "source_concept_candidate",
-    "source_state",
-    "predicate",
-    "object_text",
-    "target_concept_candidate",
-    "target_state",
-]
+_CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*\n?|\n?```$")
 
 
-def flatten_batch_result(
-    batch: list[dict[str, str]],
-    result: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-
-    for item, parsed in zip(batch, result):
-        for simple in parsed["simple_sentences"]:
-            subject = simple["subject"]
-            object_ = simple["object"]
-            rows.append(
-                {
-                    "doc_id": item["doc_id"],
-                    "url": item["url"],
-                    "original_sentence": parsed["original_sentence"],
-                    "simple_sentence": simple["sentence"],
-                    "subject_text": subject["text"],
-                    "source_concept_candidate": subject["concept_candidate"],
-                    "source_state": subject["state"],
-                    "predicate": simple["predicate"],
-                    "object_text": object_["text"],
-                    "target_concept_candidate": object_["concept_candidate"],
-                    "target_state": object_["state"],
-                }
-            )
-
-    return rows
+def strip_json_fences(text: str) -> str:
+    return _CODE_FENCE_RE.sub("", text.strip()).strip()
 
 
 def append_rows_to_csv(
     path: Path,
     rows: list[dict[str, Any]],
+    fieldnames: list[str],
 ) -> None:
     if not rows:
         return
@@ -173,7 +38,7 @@ def append_rows_to_csv(
     ) as file:
         writer = csv.DictWriter(
             file,
-            fieldnames=CSV_FIELDS,
+            fieldnames=fieldnames,
         )
 
         if not file_has_content:
@@ -190,12 +55,21 @@ class BatchProcessor:
         self,
         llm: LLMClient,
         items: list[dict[str, str]],
+        prompt: Template,
+        flatten_fn: FlattenFn,
+        fieldnames: list[str],
         batch_size: int = 10,
         max_workers: int = 10,
         output_path: Path = Path("data/cache/results.csv"),
         max_batches: int | None = None,
     ) -> None:
-        """items: mỗi phần tử là {"sentence", "doc_id", "url"}."""
+        """items: mỗi phần tử là dict, tối thiểu có key "sentence".
+
+        prompt: Template có placeholder $sentences, quyết định tác vụ đang chạy
+        (gán nhãn causal, trích SPO, ...). flatten_fn nhận (batch, parsed_result)
+        và trả về list các dict hàng CSV theo đúng schema riêng của tác vụ đó —
+        fieldnames phải khớp với các key mà flatten_fn tạo ra.
+        """
         if batch_size <= 0:
             raise ValueError("batch_size must be greater than 0")
 
@@ -207,6 +81,9 @@ class BatchProcessor:
 
         self.llm = llm
         self.items = items
+        self.prompt = prompt
+        self.flatten_fn = flatten_fn
+        self.fieldnames = fieldnames
         self.batch_size = batch_size
         self.max_workers = max_workers
         self.output_path = output_path
@@ -230,11 +107,12 @@ class BatchProcessor:
             indent=2,
         )
 
-        return PROMPT.substitute(sentences=sentences_json)
+        return self.prompt.substitute(sentences=sentences_json)
 
     def process_batch(self, batch: list[dict[str, str]]) -> list[dict[str, Any]]:
         prompt = self.build_prompt(batch)
-        return json.loads(self.llm.generate(prompt))
+        raw = self.llm.generate(prompt)
+        return json.loads(strip_json_fences(raw))
 
     def _save_error(
         self,
@@ -245,9 +123,12 @@ class BatchProcessor:
     ) -> None:
         print(f"Error processing batch {batch_id} ({len(batch)} sentences): {error}")
 
-    def process_batches(self) -> list[list[dict[str, Any]]]:
+    def process_batches(self) -> list[dict[str, Any]]:
+        """Chạy toàn bộ batch, ghi CSV theo từng batch, và trả về toàn bộ hàng
+        đã flatten (thứ tự không đảm bảo theo thứ tự đầu vào, do chạy song song —
+        nếu cần join theo đúng item, dựa vào một id field do flatten_fn giữ lại)."""
         batches = self.split_batches()
-        results: dict[int, list[dict[str, Any]]] = {}
+        all_rows: list[dict[str, Any]] = []
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures: dict[
@@ -263,18 +144,18 @@ class BatchProcessor:
 
                 try:
                     result = future.result()
-                    rows = flatten_batch_result(batch=batch, result=result)
+                    rows = self.flatten_fn(batch, result)
                 except Exception:
                     try:
                         result = self.process_batch(batch)  # thử lại đúng 1 lần
-                        rows = flatten_batch_result(batch=batch, result=result)
+                        rows = self.flatten_fn(batch, result)
                     except Exception as retry_error:
                         self._save_error(batch_id=batch_id, batch=batch, error=retry_error)
                         continue
 
                 # Dòng này chạy ở thread chính.
-                append_rows_to_csv(path=self.output_path, rows=rows)
+                append_rows_to_csv(path=self.output_path, rows=rows, fieldnames=self.fieldnames)
 
-                results[batch_id] = result
+                all_rows.extend(rows)
 
-        return [results[batch_id] for batch_id in sorted(results)]
+        return all_rows

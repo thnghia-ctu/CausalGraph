@@ -3,6 +3,7 @@ import pandas as pd
 from configs.config import CAUSAL_SENTENCES_PATH, LLM_RELATIONS_PATH
 from src.llm.batch_processor import BatchProcessor
 from src.llm.gemini_client import GeminiClient
+from src.simplification.simplify_spo_prompt import CSV_FIELDS, PROMPT, flatten_batch_result
 
 df = pd.read_csv(CAUSAL_SENTENCES_PATH)
 causal_df = df[df["weak_label"] == "causal"].dropna(subset=["sentence"])
@@ -26,6 +27,9 @@ MAX_BATCHES = None  # đặt số nguyên (vd: 3) để chạy thử trước kh
 bp = BatchProcessor(
     llm=GeminiClient(),
     items=items,
+    prompt=PROMPT,
+    flatten_fn=flatten_batch_result,
+    fieldnames=CSV_FIELDS,
     output_path=LLM_RELATIONS_PATH,
     max_batches=MAX_BATCHES,
 )

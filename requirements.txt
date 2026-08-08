@@ -18,6 +18,7 @@ py_vncorenlp
 pandas
 python-dotenv
 google-genai
+openai
 sentencepiece
 accelerate
 datasets
