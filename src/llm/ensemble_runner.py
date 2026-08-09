@@ -1,5 +1,6 @@
 import csv
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from string import Template
@@ -10,6 +11,13 @@ from src.llm.batch_processor import BatchProcessor, FlattenFn, append_rows_to_cs
 
 
 AgreementFn = Callable[[dict[str, list[dict[str, Any]]]], bool]
+
+_CREDIT_EXHAUSTED_HINTS = ("insufficient", "credit", "quota", "payment required", "402")
+
+
+def _looks_like_credit_exhausted(error: Exception) -> bool:
+    text = str(error).lower()
+    return any(hint in text for hint in _CREDIT_EXHAUSTED_HINTS)
 
 
 def default_agreement_fn(agreement_fields: list[str]) -> AgreementFn:
@@ -76,19 +84,38 @@ class EnsembleRunner:
     def _raw_fieldnames(self) -> list[str]:
         return [self.id_field, *(f for f in self.fieldnames if f != self.id_field)]
 
-    def _run_one_client(self, name: str, client: LLMClient) -> list[dict[str, Any]]:
-        processor = BatchProcessor(
-            llm=client,
-            items=self.items,
-            prompt=self.prompt,
-            flatten_fn=self.flatten_fn,
-            fieldnames=self._raw_fieldnames(),
-            batch_size=self.batch_size,
-            max_workers=self.max_workers,
-            output_path=self.output_dir / f"{name}_raw.csv",
-            max_batches=self.max_batches,
-        )
-        return processor.process_batches()
+    def _build_processors(self) -> dict[str, BatchProcessor]:
+        return {
+            name: BatchProcessor(
+                llm=client,
+                items=self.items,
+                prompt=self.prompt,
+                flatten_fn=self.flatten_fn,
+                fieldnames=self._raw_fieldnames(),
+                batch_size=self.batch_size,
+                output_path=self.output_dir / f"{name}_raw.csv",
+                max_batches=self.max_batches,
+            )
+            for name, client in self.clients.items()
+        }
+
+    def _process_batch_for_client(
+        self,
+        name: str,
+        processor: BatchProcessor,
+        batch_id: int,
+        batch: list[dict[str, str]],
+    ) -> tuple[list[dict[str, Any]], Exception | None]:
+        try:
+            result = processor.process_batch(batch)
+            return self.flatten_fn(batch, result), None
+        except Exception:
+            try:
+                result = processor.process_batch(batch)
+                return self.flatten_fn(batch, result), None
+            except Exception as retry_error:
+                print(f"Error processing batch {batch_id} ({name}, {len(batch)} sentences): {retry_error}")
+                return [], retry_error
 
     def _build_disagreement_row(
         self,
@@ -110,12 +137,33 @@ class EnsembleRunner:
     def fetch(self) -> dict[str, dict[str, list[dict[str, Any]]]]:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        self.rows_by_model = {}
-        for name, client in self.clients.items():
-            grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-            for row in self._run_one_client(name, client):
-                grouped[str(row.get(self.id_field))].append(row)
-            self.rows_by_model[name] = grouped
+        processors = self._build_processors()
+        batches = next(iter(processors.values())).split_batches()
+        self.rows_by_model = {name: defaultdict(list) for name in self.clients}
+
+        with ThreadPoolExecutor(max_workers=len(processors)) as executor:
+            for batch_id, batch in enumerate(batches):
+                futures = {
+                    executor.submit(self._process_batch_for_client, name, processor, batch_id, batch): name
+                    for name, processor in processors.items()
+                }
+
+                credit_exhausted = False
+                for future in futures:
+                    name = futures[future]
+                    rows, error = future.result()
+
+                    if rows:
+                        append_rows_to_csv(processors[name].output_path, rows, fieldnames=processors[name].fieldnames)
+                        for row in rows:
+                            self.rows_by_model[name][str(row.get(self.id_field))].append(row)
+
+                    if error is not None and _looks_like_credit_exhausted(error):
+                        print(f"Dừng sớm: {name} có vẻ đã hết credit, ở batch {batch_id + 1}/{len(batches)}.")
+                        credit_exhausted = True
+
+                if credit_exhausted:
+                    return self.rows_by_model
 
         return self.rows_by_model
 

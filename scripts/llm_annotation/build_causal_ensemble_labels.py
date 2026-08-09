@@ -19,8 +19,6 @@ items = [
     for row in df.itertuples()
 ]
 
-MAX_BATCHES = 2
-
 runner = EnsembleRunner(
     clients={
         "gemini": OpenRouterClient(model="google/gemini-2.5-flash"),
@@ -33,7 +31,6 @@ runner = EnsembleRunner(
     fieldnames=CSV_FIELDS,
     agreement_fields=["label"],
     output_dir=BASE_DIR / "data" / "ensemble" / "causal",
-    max_batches=MAX_BATCHES,
 )
 
 runner.fetch()
