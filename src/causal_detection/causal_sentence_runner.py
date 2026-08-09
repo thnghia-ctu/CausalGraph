@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Protocol
 
-from underthesea import sent_tokenize
+from underthesea import sent_tokenize, word_tokenize
 
 from configs.config import CACHE_DIR
 from src.causal_detection.trigger_classifier import TriggerCausalClassifier
@@ -13,6 +13,8 @@ from src.data_models.ref import SentenceRef
 
 
 LOGGER = logging.getLogger(__name__)
+
+MIN_TOKENS_PER_SENTENCE = 5
 
 FIELDNAMES = [
     "sentence",
@@ -36,6 +38,7 @@ class CausalSentenceRunner:
 
     def process_chunk(self, chunk: Chunk) -> list[CausalSentence]:
         sentences = sent_tokenize(chunk.text)
+        sentences = [s for s in sentences if len(word_tokenize(s)) >= MIN_TOKENS_PER_SENTENCE]
         if not sentences:
             return []
 

@@ -60,7 +60,7 @@ python -m scripts.crawl_data
 ### 3. Lọc chunk theo độ liên quan
 
 ```bash
-python -m scripts.filter_chunks
+python -m scripts.chunking.filter_chunks
 ```
 
 Đọc `data/raw/manifest.jsonl`, chia nhỏ (chunk) từng bài viết rồi lọc theo độ
