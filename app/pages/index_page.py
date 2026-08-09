@@ -1,6 +1,19 @@
 import streamlit as st
 
-from services.dataset_store import STATUS_LABELS, create_dataset, dataset_dir, list_datasets
+from services.dataset_store import (
+    STATUS_CRAWLED,
+    STATUS_FAILED,
+    STATUS_INGESTING,
+    STATUS_LABELS,
+    STATUS_NEW,
+    create_dataset,
+    dataset_dir,
+    delete_dataset,
+    list_datasets,
+    load_source_urls,
+    save_meta,
+)
+from services.pipeline_service import get_pipeline_service
 from services.upload_store import parse_url_list_files, save_uploaded_documents
 
 
@@ -17,19 +30,66 @@ datasets = list_datasets()
 if not datasets:
     st.info("Chưa có dataset nào. Tạo dataset mới ở bên dưới để bắt đầu.")
 else:
-    header = st.columns([3, 2, 3, 1])
+    header = st.columns([3, 2, 3, 3])
     header[0].markdown("**Tên**")
     header[1].markdown("**Trạng thái**")
     header[2].markdown("**Tạo lúc**")
+    header[3].markdown("")
+
+    pending_delete = st.session_state.get("pending_delete_id")
 
     for meta in datasets:
-        row = st.columns([3, 2, 3, 1])
+        row = st.columns([3, 2, 3, 3])
         row[0].write(meta.name)
         row[1].write(STATUS_LABELS.get(meta.status, meta.status))
         row[2].write(meta.created_at[:19].replace("T", " "))
-        if row[3].button("Chọn", key=f"select-{meta.id}"):
-            st.session_state["dataset_id"] = meta.id
-            st.rerun()
+
+        actions = ["crawl", "delete"] if meta.status == STATUS_NEW else ["select", "crawl", "delete"]
+        _, *action_cols = row[3].columns([1, *([1] * len(actions))])
+
+        for action, col in zip(actions, action_cols):
+            if action == "select":
+                if col.button("Chọn", key=f"select-{meta.id}"):
+                    st.session_state["dataset_id"] = meta.id
+                    st.rerun()
+            elif action == "crawl":
+                crawl_label = "Crawl lại" if meta.status != STATUS_NEW else "Crawl"
+                if col.button(crawl_label, key=f"crawl-{meta.id}"):
+                    urls = load_source_urls(meta.id)
+                    meta.status = STATUS_INGESTING
+                    meta.error = ""
+                    save_meta(meta)
+                    service = get_pipeline_service()
+                    try:
+                        with st.spinner(f"Đang thu thập dữ liệu cho '{meta.name}'..."):
+                            docs = service.crawl(urls, dataset_dir(meta.id))
+                        meta.stage_counts["crawl"] = len(docs)
+                        meta.status = STATUS_CRAWLED
+                        save_meta(meta)
+                        st.success(f"Đã thu thập {len(docs)} văn bản cho '{meta.name}'.")
+                    except Exception as error:
+                        meta.status = STATUS_FAILED
+                        meta.error = str(error)
+                        save_meta(meta)
+                        st.error(f"Lỗi khi crawl '{meta.name}': {error}")
+                    st.rerun()
+            elif action == "delete":
+                if col.button("🗑️", key=f"delete-{meta.id}", help="Xóa dataset"):
+                    st.session_state["pending_delete_id"] = meta.id
+                    st.rerun()
+
+        if pending_delete == meta.id:
+            st.warning(f"Xóa dataset '{meta.name}'? Hành động này không thể hoàn tác.")
+            confirm_cols = st.columns([1, 1, 5])
+            if confirm_cols[0].button("Xác nhận xóa", key=f"confirm-delete-{meta.id}"):
+                delete_dataset(meta.id)
+                if st.session_state.get("dataset_id") == meta.id:
+                    del st.session_state["dataset_id"]
+                del st.session_state["pending_delete_id"]
+                st.rerun()
+            if confirm_cols[1].button("Hủy", key=f"cancel-delete-{meta.id}"):
+                del st.session_state["pending_delete_id"]
+                st.rerun()
 
 st.divider()
 st.subheader("Tạo dataset mới")
@@ -90,9 +150,5 @@ if submitted:
         st.rerun()
 
 selected_id = st.session_state.get("dataset_id")
-if selected_id:
-    st.sidebar.success(f"Dataset đang chọn:\n\n**{selected_id}**")
-    if st.sidebar.button("Sang bước 2: Ingest →", type="primary"):
-        st.switch_page("pages/ingest_page.py")
-else:
+if not selected_id:
     st.sidebar.warning("Chưa chọn dataset nào.")

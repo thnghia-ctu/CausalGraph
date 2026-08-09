@@ -9,14 +9,15 @@ from src.crawlers.crawl_runner import load_documents
 from src.data_models.spo_record import SpoRecord
 from src.pipeline import Pipeline
 
-STAGES = (
-    ("crawl", "Thu thập văn bản"),
+CRAWL_STAGE = ("crawl", "Thu thập văn bản")
+PROCESS_STAGES = (
     ("chunk", "Phân đoạn văn bản"),
     ("causal_detect", "Nhận diện câu nhân quả"),
     ("simplify", "Tách câu đơn"),
     ("spo", "Trích xuất subject-predicate-object"),
     ("concept_state", "Phân rã concept/state"),
 )
+STAGES = (CRAWL_STAGE, *PROCESS_STAGES)
 STAGE_LABELS = dict(STAGES)
 
 ProgressCallback = Callable[[str, int], None]
@@ -26,9 +27,20 @@ class PipelineService:
     def __init__(self):
         self._pipeline = Pipeline()
 
-    def ingest(
+    def crawl(
         self,
         urls: list[str],
+        dataset_dir: Path,
+        on_progress: ProgressCallback | None = None,
+    ) -> list[str]:
+        self._pipeline.crawl_data(urls, output_path=dataset_dir)
+        docs = load_documents(dataset_dir)
+        if on_progress is not None:
+            on_progress("crawl", len(docs))
+        return docs
+
+    def process(
+        self,
         dataset_dir: Path,
         on_progress: ProgressCallback | None = None,
     ) -> list[SpoRecord]:
@@ -36,9 +48,7 @@ class PipelineService:
             if on_progress is not None:
                 on_progress(stage_key, count)
 
-        self._pipeline.crawl_data(urls, output_path=dataset_dir)
         docs = load_documents(dataset_dir)
-        report("crawl", len(docs))
 
         chunks = self._pipeline.chunk_data(docs, output_path=dataset_dir)
         report("chunk", len(chunks))

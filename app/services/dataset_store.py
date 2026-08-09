@@ -12,12 +12,14 @@ DATASETS_DIR = APP_DIR / "datasets"
 
 STATUS_NEW = "new"
 STATUS_INGESTING = "ingesting"
+STATUS_CRAWLED = "crawled"
 STATUS_READY = "ready"
 STATUS_FAILED = "failed"
 
 STATUS_LABELS = {
     STATUS_NEW: "Mới tạo",
     STATUS_INGESTING: "Đang xử lý",
+    STATUS_CRAWLED: "Đã thu thập dữ liệu",
     STATUS_READY: "Sẵn sàng",
     STATUS_FAILED: "Lỗi",
 }

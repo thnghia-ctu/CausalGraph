@@ -34,10 +34,16 @@
     return value === 1 || value === -1 ? value : 0;
   }
 
-  function relationDirectionForNode(nodeId, edge, r) {
-    if (edge.from === nodeId) return relationDirection(r.source_direction);
-    if (edge.to === nodeId) return relationDirection(r.target_direction);
-    return 0;
+  function relationDirectionsForNode(nodeId, edge, r) {
+    // Cạnh tự vòng (edge.from === edge.to, vd. do gộp nhầm 2 concept khác
+    // nhau vào cùng 1 cụm) khiến node đóng cả 2 vai trò source lẫn target
+    // trong CÙNG một quan hệ — phải trả về cả 2 chiều, không chỉ chiều đầu
+    // tiên khớp, nếu không chiều còn lại (thường là target_direction) bị bỏ
+    // sót hoàn toàn dù đã được tính vào direction_state của node ở phía Python.
+    var directions = [];
+    if (edge.from === nodeId) directions.push(relationDirection(r.source_direction));
+    if (edge.to === nodeId) directions.push(relationDirection(r.target_direction));
+    return directions;
   }
 
   function renderRelation(r) {
@@ -75,8 +81,9 @@
       var edge = edges.get(edgeId);
       var rels = edge.relations || [];
       rels.forEach(function (r) {
-        var direction = relationDirectionForNode(nodeId, edge, r);
-        groups[direction].push({ edge: edge, relation: r });
+        relationDirectionsForNode(nodeId, edge, r).forEach(function (direction) {
+          groups[direction].push({ edge: edge, relation: r });
+        });
       });
     });
 
