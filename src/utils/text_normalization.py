@@ -9,6 +9,7 @@ _LEADING_BULLET_PATTERN = re.compile(
 _TRAILING_SECTION_NUMBER_PATTERN = re.compile(
     r"\s+\d+(?:\.\d+)+\.?\s*$"
 )
+_LINE_TERMINAL_CHARS = ".!?…:;\"'”’)»"
 
 
 def normalize_surface(text: str) -> str:
@@ -22,3 +23,13 @@ def remove_noise_tokens(text: str) -> str:
     cleaned = _LEADING_BULLET_PATTERN.sub("", text)
     cleaned = _TRAILING_SECTION_NUMBER_PATTERN.sub("", cleaned)
     return _WHITESPACE_PATTERN.sub(" ", cleaned).strip()
+
+
+def normalize_punct(text: str) -> str:
+    fixed_lines = []
+    for line in text.split("\n"):
+        content = line.rstrip()
+        if content and content[-1] not in _LINE_TERMINAL_CHARS:
+            content += "."
+        fixed_lines.append(content)
+    return "\n".join(fixed_lines)

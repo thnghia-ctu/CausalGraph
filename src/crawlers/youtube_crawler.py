@@ -10,6 +10,7 @@ from .base_crawler import BaseCrawler
 class YouTubeCrawler(BaseCrawler):
     source_type = "youtube"
     delay_seconds = 5.0
+    max_concurrency = 1
     _model = None
 
     def __init__(self, url):

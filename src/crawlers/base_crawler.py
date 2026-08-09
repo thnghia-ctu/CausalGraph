@@ -1,5 +1,6 @@
 class BaseCrawler:
     delay_seconds: float = 2.0
+    max_concurrency: int | None = None
 
     def __init__(self, url):
         self.url = url

@@ -10,6 +10,7 @@ from src.data_models.document import Document
 from src.data_models.ref import ChunkRef, DocRef
 from src.filtering.semantic_filter import score_chunks
 import src.utils.helpers as hlp
+import src.utils.text_normalization as txn
 
 
 LOGGER = logging.getLogger(__name__)
@@ -49,6 +50,8 @@ class ChunkRunner:
         text = hlp.load_txt(str(local_path))
         if not text:
             return [], []
+
+        text = txn.normalize_punct(text)
 
         chunk_texts = [chunk.text for chunk in self.chunker.chunk(text)]
         if not chunk_texts:

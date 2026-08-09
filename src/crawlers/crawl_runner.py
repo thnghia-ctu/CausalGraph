@@ -109,20 +109,16 @@ class CrawlRunner:
         raw_dir = Path(output_path) / "raw"
         index_path = raw_dir / "documents.jsonl"
 
-        crawler_classes = (WebCrawler, YouTubeCrawler)
+        crawler_classes = {self._select_crawler_class(link) for link in links}
         limiters = {
             cls.source_type: RateLimiter(
                 cls.delay_seconds if delay_seconds is None else delay_seconds
             )
             for cls in crawler_classes
         }
-        max_concurrency = {
-            WebCrawler.source_type: max_workers,
-            YouTubeCrawler.source_type: 1,
-        }
         semaphores = {
-            source_type: threading.Semaphore(cap)
-            for source_type, cap in max_concurrency.items()
+            cls.source_type: threading.Semaphore(cls.max_concurrency or max_workers)
+            for cls in crawler_classes
         }
 
         documents: list[Document] = []
