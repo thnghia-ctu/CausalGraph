@@ -6,6 +6,7 @@ import numpy as np
 from underthesea import word_tokenize
 
 from configs.config import CAUSAL_FASTTEXT_MODEL_PATH
+from src.utils.hub import push_file_to_hub
 
 _LABEL_PREFIX = "__label__"
 
@@ -65,3 +66,6 @@ class FastTextCausalClassifier:
             label[len(_LABEL_PREFIX):] for label in model.get_labels()
         )
         return cls(model=model, classes=classes)
+
+    def push_to_hub(self, repo_id: str, path=CAUSAL_FASTTEXT_MODEL_PATH) -> None:
+        push_file_to_hub(repo_id, path)

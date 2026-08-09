@@ -9,17 +9,15 @@ import pandas as pd
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 
-from configs.config import CAUSAL_CLASSIFIER_MODEL_PATH, CAUSAL_SENTENCES_PATH
+from configs.config import CAUSAL_CLASSIFIER_MODEL_PATH, CAUSAL_SENTENCES_VERIFIED_PATH
 from src.causal_detection.embedding_classifier import EmbeddingCausalClassifier
-
-TRAIN_ROWS = 700
 
 
 def main():
-    df = pd.read_csv(CAUSAL_SENTENCES_PATH, sep=";").iloc[:TRAIN_ROWS]
+    df = pd.read_csv(CAUSAL_SENTENCES_VERIFIED_PATH).dropna(subset=["sentence"])
 
     texts = df["sentence"].tolist()
-    labels = df["weak_label"].tolist()
+    labels = df["label"].tolist()
 
     train_texts, test_texts, train_labels, test_labels = train_test_split(
         texts, labels, test_size=0.2, stratify=labels, random_state=42

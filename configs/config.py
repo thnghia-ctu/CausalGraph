@@ -23,7 +23,9 @@ DATASET_DIR = BASE_DIR / "data/dataset"
 CAUSAL_SENTENCES_VERIFIED_PATH = DATASET_DIR / "causal_sentences.csv"
 
 CAUSAL_CLASSIFIER_MODEL_PATH = BASE_DIR / "models/causal_classifier.joblib"
+CAUSAL_CLASSIFIER_HF_REPO_ID = "thnghia-ctu/vi-causal-sentence-svm"
 CAUSAL_FASTTEXT_MODEL_PATH = BASE_DIR / "models/causal_classifier_fasttext.bin"
+CAUSAL_FASTTEXT_HF_REPO_ID = "thnghia-ctu/vi-causal-sentence-fasttext"
 
 LLM_RELATIONS_DIR = BASE_DIR / "data/llm_relations"
 LLM_RELATIONS_PATH = LLM_RELATIONS_DIR / "relations.csv"
