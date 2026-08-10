@@ -21,6 +21,7 @@ CAUSAL_SENTENCES_PATH = CAUSAL_SENTENCES_DIR / "causal_sentences.csv"
 
 DATASET_DIR = BASE_DIR / "data/dataset"
 CAUSAL_SENTENCES_VERIFIED_PATH = DATASET_DIR / "causal_sentences.csv"
+SIMPLIFICATION_SPO_PATH = DATASET_DIR / "simplificated_spo_sentence.csv"
 
 CAUSAL_CLASSIFIER_MODEL_PATH = BASE_DIR / "models/causal_classifier.joblib"
 CAUSAL_CLASSIFIER_HF_REPO_ID = "thnghia-ctu/vi-causal-sentence-svm"

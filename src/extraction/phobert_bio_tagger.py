@@ -214,7 +214,8 @@ class PhoBertBioTagger:
         """Mỗi example là tuple text thô (xem `_build_labels` của subclass để biết thứ tự
         field) — các span phải xuất hiện nguyên văn trong field đầu tiên. num_train_epochs
         là mức trần; nếu có eval_examples, training tự dừng sớm khi eval_loss không cải
-        thiện sau `early_stopping_patience` lần eval liên tiếp."""
+        thiện sau `early_stopping_patience` epoch liên tiếp (eval theo epoch, không theo
+        step — không phụ thuộc kích thước dataset)."""
         output_dir = output_dir or self.MODEL_DIR
         train_dataset = self._to_dataset(train_examples)
         eval_dataset = self._to_dataset(eval_examples) if eval_examples else None
@@ -226,12 +227,10 @@ class PhoBertBioTagger:
             per_device_train_batch_size=per_device_train_batch_size,
             per_device_eval_batch_size=per_device_train_batch_size,
             num_train_epochs=num_train_epochs,
-            save_strategy="steps",
-            save_steps=50,
+            save_strategy="epoch",
             save_total_limit=2,
             logging_steps=10,
-            eval_strategy="steps" if eval_dataset is not None else "no",
-            eval_steps=50,
+            eval_strategy="epoch" if eval_dataset is not None else "no",
             load_best_model_at_end=eval_dataset is not None,
             metric_for_best_model="eval_loss",
             greater_is_better=False,

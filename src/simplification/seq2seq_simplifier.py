@@ -64,7 +64,8 @@ class Seq2SeqSimplifier:
         resume: bool = True,
     ) -> Seq2SeqTrainer:
         """num_train_epochs là mức trần; nếu có eval_pairs, training tự dừng sớm
-        khi eval_loss không cải thiện sau `early_stopping_patience` lần eval liên tiếp,
+        khi eval_loss không cải thiện sau `early_stopping_patience` epoch liên tiếp
+        (eval theo epoch, không theo step — không phụ thuộc kích thước dataset),
         thay vì phải đoán trước số epoch tối ưu."""
         train_dataset = self._to_dataset(train_pairs)
         eval_dataset = self._to_dataset(eval_pairs) if eval_pairs else None
@@ -78,12 +79,10 @@ class Seq2SeqSimplifier:
             num_train_epochs=num_train_epochs,
             predict_with_generate=True,
             generation_max_length=MAX_TARGET_LENGTH,
-            save_strategy="steps",
-            save_steps=50,
+            save_strategy="epoch",
             save_total_limit=2,
             logging_steps=10,
-            eval_strategy="steps" if eval_dataset is not None else "no",
-            eval_steps=50,
+            eval_strategy="epoch" if eval_dataset is not None else "no",
             load_best_model_at_end=eval_dataset is not None,
             metric_for_best_model="eval_loss",
             greater_is_better=False,

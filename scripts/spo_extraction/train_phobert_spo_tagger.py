@@ -8,7 +8,7 @@ if str(ROOT) not in sys.path:
 
 from sklearn.model_selection import train_test_split
 
-from configs.config import SPO_RELATIONS_PATH, SPO_TAGGER_MODEL_DIR
+from configs.config import SIMPLIFICATION_SPO_PATH, SPO_TAGGER_HF_REPO_ID, SPO_TAGGER_MODEL_DIR
 from src.extraction.phobert_spo_tagger import PhoBertSpoTagger
 
 
@@ -31,7 +31,7 @@ def build_examples(path: Path) -> list[tuple[str, str, str, str]]:
 
 
 def main():
-    examples = build_examples(SPO_RELATIONS_PATH)
+    examples = build_examples(SIMPLIFICATION_SPO_PATH)
     train_examples, eval_examples = train_test_split(examples, test_size=0.1, random_state=42)
 
     tagger = PhoBertSpoTagger()
@@ -39,8 +39,10 @@ def main():
 
     final_path = SPO_TAGGER_MODEL_DIR / "final"
     tagger.save(final_path)
-
     print(f"Trained on {len(train_examples)} examples, eval on {len(eval_examples)} -> {final_path}")
+
+    tagger.push_to_hub(SPO_TAGGER_HF_REPO_ID)
+    print(f"Pushed -> {SPO_TAGGER_HF_REPO_ID}")
 
 
 if __name__ == "__main__":

@@ -8,12 +8,12 @@ if str(ROOT) not in sys.path:
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from configs.config import SIMPLIFICATION_SENTENCES_PATH, SIMPLIFIER_MODEL_DIR
+from configs.config import SIMPLIFICATION_SPO_PATH, SIMPLIFIER_HF_REPO_ID, SIMPLIFIER_MODEL_DIR
 from src.simplification.seq2seq_simplifier import SENTENCE_SEPARATOR, Seq2SeqSimplifier
 
 
 def build_pairs(path: Path) -> list[tuple[str, str]]:
-    df = pd.read_csv(path)
+    df = pd.read_csv(path, encoding="utf-8-sig")
     grouped = df.groupby("original_sentence")["simple_sentence"].apply(list)
     return [
         (original, SENTENCE_SEPARATOR.join(simples))
@@ -22,7 +22,7 @@ def build_pairs(path: Path) -> list[tuple[str, str]]:
 
 
 def main():
-    pairs = build_pairs(SIMPLIFICATION_SENTENCES_PATH)
+    pairs = build_pairs(SIMPLIFICATION_SPO_PATH)
     train_pairs, eval_pairs = train_test_split(pairs, test_size=0.1, random_state=42)
 
     simplifier = Seq2SeqSimplifier()
@@ -30,8 +30,10 @@ def main():
 
     final_path = SIMPLIFIER_MODEL_DIR / "final"
     simplifier.save(final_path)
-
     print(f"Trained on {len(train_pairs)} pairs, eval on {len(eval_pairs)} -> {final_path}")
+
+    simplifier.push_to_hub(SIMPLIFIER_HF_REPO_ID)
+    print(f"Pushed -> {SIMPLIFIER_HF_REPO_ID}")
 
 
 if __name__ == "__main__":
