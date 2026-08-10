@@ -7,18 +7,18 @@ st.title("Bước 3 — Khám phá đồ thị")
 
 dataset_id = st.session_state.get("dataset_id")
 if not dataset_id:
-    st.warning("Chưa chọn dataset nào.")
-    if st.button("← Quay lại chọn dataset"):
+    st.warning("Chưa chọn tập dữ liệu nào.")
+    if st.button("← Quay lại chọn tập dữ liệu"):
         st.switch_page("pages/index_page.py")
     st.stop()
 
 meta = load_meta(dataset_id)
 if meta is None:
-    st.error(f"Không tìm thấy dataset '{dataset_id}'.")
+    st.error(f"Không tìm thấy tập dữ liệu '{dataset_id}'.")
     st.stop()
 
 if meta.status != STATUS_READY:
-    st.warning("Dataset chưa xử lý xong ở bước Xử lý dữ liệu. Hãy chạy pipeline trước.")
+    st.warning("Tập dữ liệu chưa xử lý xong ở bước Xử lý dữ liệu. Hãy chạy pipeline trước.")
     if st.button("← Sang bước Xử lý dữ liệu"):
         st.switch_page("pages/ingest_page.py")
     st.stop()

@@ -14,7 +14,7 @@ from services.dataset_store import (
     save_meta,
 )
 from services.pipeline_service import get_pipeline_service
-from services.upload_store import parse_url_list_files, save_uploaded_documents
+from services.upload_store import parse_url_list_files
 
 
 st.title("Khai phá dữ liệu nhân quả")
@@ -23,12 +23,12 @@ st.caption(
     "từ văn bản tiếng Việt đến đồ thị nhân quả ở mức concept."
 )
 
-st.subheader("Dataset hiện có")
+st.subheader("Tập dữ liệu hiện có")
 
 datasets = list_datasets()
 
 if not datasets:
-    st.info("Chưa có dataset nào. Tạo dataset mới ở bên dưới để bắt đầu.")
+    st.info("Chưa có tập dữ liệu nào. Tạo tập dữ liệu mới ở bên dưới để bắt đầu.")
 else:
     header = st.columns([3, 2, 3, 3])
     header[0].markdown("**Tên**")
@@ -53,7 +53,7 @@ else:
                     st.session_state["dataset_id"] = meta.id
                     st.rerun()
             elif action == "crawl":
-                crawl_label = "Crawl lại" if meta.status != STATUS_NEW else "Crawl"
+                crawl_label = "Tải dữ liệu lại" if meta.status != STATUS_NEW else "Tải dữ liệu"
                 if col.button(crawl_label, key=f"crawl-{meta.id}"):
                     urls = load_source_urls(meta.id)
                     meta.status = STATUS_INGESTING
@@ -71,15 +71,15 @@ else:
                         meta.status = STATUS_FAILED
                         meta.error = str(error)
                         save_meta(meta)
-                        st.error(f"Lỗi khi crawl '{meta.name}': {error}")
+                        st.error(f"Lỗi khi tải dữ liệu '{meta.name}': {error}")
                     st.rerun()
             elif action == "delete":
-                if col.button("🗑️", key=f"delete-{meta.id}", help="Xóa dataset"):
+                if col.button("🗑️", key=f"delete-{meta.id}", help="Xóa tập dữ liệu"):
                     st.session_state["pending_delete_id"] = meta.id
                     st.rerun()
 
         if pending_delete == meta.id:
-            st.warning(f"Xóa dataset '{meta.name}'? Hành động này không thể hoàn tác.")
+            st.warning(f"Xóa tập dữ liệu '{meta.name}'? Hành động này không thể hoàn tác.")
             confirm_cols = st.columns([1, 1, 5])
             if confirm_cols[0].button("Xác nhận xóa", key=f"confirm-delete-{meta.id}"):
                 delete_dataset(meta.id)
@@ -92,56 +92,34 @@ else:
                 st.rerun()
 
 st.divider()
-st.subheader("Tạo dataset mới")
+st.subheader("Tạo tập dữ liệu mới")
 
 with st.form("create-dataset", clear_on_submit=True):
-    name = st.text_input("Tên dataset")
-    urls_text = st.text_area(
-        "Danh sách URL nguồn (mỗi dòng một URL, có thể để trống nếu chỉ nhập file)",
-        height=160,
-        placeholder="https://vnexpress.net/...\nhttps://baonongnghiepmoitruong.vn/...",
-    )
+    name = st.text_input("Tên tập dữ liệu")
     uploaded_url_files = st.file_uploader(
         "Hoặc tải lên file danh sách URL (.txt, mỗi dòng một URL)",
         type=["txt"],
         accept_multiple_files=True,
         key="uploaded_url_files",
     )
-    uploaded_files = st.file_uploader(
-        "Hoặc tải lên file nội dung văn bản đã có sẵn (.txt), mỗi file là một tài liệu",
-        type=["txt"],
-        accept_multiple_files=True,
-        key="uploaded_documents",
-    )
-    submitted = st.form_submit_button("Tạo dataset")
+    submitted = st.form_submit_button("Tạo tập dữ liệu")
 
 if submitted:
-    urls = [line.strip() for line in urls_text.splitlines() if line.strip()]
     url_list_result = parse_url_list_files(uploaded_url_files) if uploaded_url_files else None
-    if url_list_result:
-        urls.extend(url_list_result.urls)
-    urls = list(dict.fromkeys(urls))
+    urls = list(dict.fromkeys(url_list_result.urls)) if url_list_result else []
 
     if not name.strip():
-        st.error("Cần nhập tên dataset.")
-    elif not urls and not uploaded_files:
-        st.error("Cần ít nhất một URL (dán tay hoặc từ file) hoặc một file văn bản.")
+        st.error("Cần nhập tên tập dữ liệu.")
+    elif not urls:
+        st.error("Cần tải lên file danh sách URL.")
     else:
         meta = create_dataset(name.strip(), urls)
-        upload_result = (
-            save_uploaded_documents(uploaded_files, dataset_dir(meta.id))
-            if uploaded_files
-            else None
-        )
         st.session_state["dataset_id"] = meta.id
-        saved_count = len(upload_result.documents) if upload_result else 0
         st.success(
-            f"Đã tạo dataset '{meta.name}' ({len(urls)} URL, {saved_count} file). "
+            f"Đã tạo tập dữ liệu '{meta.name}' ({len(urls)} URL). "
             "Mở trang Ingest ở sidebar để chạy pipeline."
         )
-        skipped_files = (upload_result.skipped_files if upload_result else []) + (
-            url_list_result.skipped_files if url_list_result else []
-        )
+        skipped_files = url_list_result.skipped_files if url_list_result else []
         if skipped_files:
             st.warning(
                 "Không đọc được encoding của các file sau, đã bỏ qua: "
@@ -151,4 +129,4 @@ if submitted:
 
 selected_id = st.session_state.get("dataset_id")
 if not selected_id:
-    st.sidebar.warning("Chưa chọn dataset nào.")
+    st.sidebar.warning("Chưa chọn tập dữ liệu nào.")

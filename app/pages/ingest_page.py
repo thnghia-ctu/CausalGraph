@@ -16,19 +16,19 @@ st.title("Bước 2 — Xử lý dữ liệu")
 
 dataset_id = st.session_state.get("dataset_id")
 if not dataset_id:
-    st.warning("Chưa chọn dataset nào.")
-    if st.button("← Quay lại chọn dataset"):
+    st.warning("Chưa chọn tập dữ liệu nào.")
+    if st.button("← Quay lại chọn tập dữ liệu"):
         st.switch_page("pages/index_page.py")
     st.stop()
 
 meta = load_meta(dataset_id)
 if meta is None:
-    st.error(f"Không tìm thấy dataset '{dataset_id}'.")
+    st.error(f"Không tìm thấy tập dữ liệu '{dataset_id}'.")
     st.stop()
 
 if meta.status == STATUS_NEW:
-    st.warning("Dataset chưa được thu thập dữ liệu. Quay lại trang danh sách để bấm Crawl trước.")
-    if st.button("← Quay lại chọn dataset"):
+    st.warning("Tập dữ liệu chưa được thu thập dữ liệu. Quay lại trang danh sách để bấm Tải dữ liệu trước.")
+    if st.button("← Quay lại chọn tập dữ liệu"):
         st.switch_page("pages/index_page.py")
     st.stop()
 
@@ -88,6 +88,6 @@ if st.button(button_label, type="primary"):
     st.rerun()
 
 st.caption(
-    "Crawl đã thực hiện ở bước chọn dataset. Chạy lại ở đây sẽ xử lý lại từ bước phân đoạn "
+    "Tải dữ liệu đã thực hiện ở bước chọn tập dữ liệu. Chạy lại ở đây sẽ xử lý lại từ bước phân đoạn "
     "văn bản trên dữ liệu đã thu thập, các bước sau luôn ghi đè kết quả cũ."
 )
