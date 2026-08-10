@@ -32,6 +32,12 @@ if meta.status == STATUS_NEW:
         st.switch_page("pages/index_page.py")
     st.stop()
 
+if not (dataset_dir(dataset_id) / "chunks" / "chunks_filtered.jsonl").exists():
+    st.warning("Chưa có dữ liệu đã lọc. Hãy chạy 'Lọc dữ liệu' trước.")
+    if st.button("→ Sang trang Lọc dữ liệu"):
+        st.switch_page("pages/filter_page.py")
+    st.stop()
+
 st.subheader(meta.name)
 st.caption(f"ID: `{meta.id}` · Tạo lúc: {meta.created_at[:19].replace('T', ' ')}")
 
@@ -88,6 +94,6 @@ if st.button(button_label, type="primary"):
     st.rerun()
 
 st.caption(
-    "Tải dữ liệu đã thực hiện ở bước chọn tập dữ liệu. Chạy lại ở đây sẽ xử lý lại từ bước phân đoạn "
-    "văn bản trên dữ liệu đã thu thập, các bước sau luôn ghi đè kết quả cũ."
+    "Thu thập, phân đoạn và lọc dữ liệu đã thực hiện ở các bước trước. Chạy lại ở đây sẽ xử lý lại từ "
+    "dữ liệu đã lọc, các bước sau luôn ghi đè kết quả cũ."
 )

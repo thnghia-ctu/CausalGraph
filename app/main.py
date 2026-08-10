@@ -22,8 +22,8 @@ st.sidebar.page_link(index_page)
 if selected_meta is not None:
     st.sidebar.divider()
     st.sidebar.subheader(f":blue[{selected_meta.name}]")
-    st.sidebar.page_link(ingest_page)
     st.sidebar.page_link(filter_page)
+    st.sidebar.page_link(ingest_page)
     st.sidebar.page_link(explore_page)
 
 page.run()

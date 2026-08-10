@@ -6,7 +6,9 @@ from pathlib import Path
 
 from configs.config import CACHE_DIR, CHUNK_FILTER_THRESHOLD
 from src.data_models.chunk import Chunk
-from src.filtering.semantic_filter import score_chunks
+from src.filtering.knowledge_base_store import load_knowledge_base
+from src.filtering.scorer import Scorer
+import src.utils.embedding as emb
 
 
 LOGGER = logging.getLogger(__name__)
@@ -20,8 +22,7 @@ def _append_jsonl(handle, chunks: list[Chunk]) -> None:
 
 
 class ChunkFilterRunner:
-    def __init__(self, threshold: float = CHUNK_FILTER_THRESHOLD, batch_size: int = DEFAULT_BATCH_SIZE):
-        self.threshold = threshold
+    def __init__(self, batch_size: int = DEFAULT_BATCH_SIZE):
         self.batch_size = batch_size
 
     def filter_chunks(
@@ -36,6 +37,13 @@ class ChunkFilterRunner:
         filtered_path = chunks_dir / "chunks_filtered.jsonl"
         rejected_path = chunks_dir / "chunks_rejected.jsonl"
 
+        knowledge_base = load_knowledge_base(output_path)
+        scorer = Scorer(
+            emb.encode_texts(knowledge_base["lexicon"]),
+            emb.encode_texts(knowledge_base["query"]),
+        )
+        threshold = knowledge_base.get("threshold", CHUNK_FILTER_THRESHOLD)
+
         all_kept: list[Chunk] = []
 
         with (
@@ -44,14 +52,14 @@ class ChunkFilterRunner:
         ):
             for batch in itertools.batched(chunks, self.batch_size):
                 try:
-                    scores = score_chunks([chunk.text for chunk in batch])
+                    scores = scorer.score([chunk.text for chunk in batch])
                 except Exception as error:
                     LOGGER.error("Lỗi tại batch chunk (doc %s): %s", batch[0].doc_id, error)
                     continue
 
                 kept, rejected = [], []
                 for chunk, score in zip(batch, scores):
-                    (kept if score > self.threshold else rejected).append(chunk)
+                    (kept if score > threshold else rejected).append(chunk)
 
                 _append_jsonl(filtered_file, kept)
                 _append_jsonl(rejected_file, rejected)

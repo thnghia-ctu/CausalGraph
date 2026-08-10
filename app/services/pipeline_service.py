@@ -5,6 +5,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.chunking.chunk_runner import load_chunks
 from src.crawlers.crawl_runner import load_documents
 from src.data_models.chunk import Chunk
 from src.data_models.spo_record import SpoRecord
@@ -12,8 +13,6 @@ from src.pipeline import Pipeline
 
 CRAWL_STAGE = ("crawl", "Thu thập văn bản")
 PROCESS_STAGES = (
-    ("chunk", "Phân đoạn văn bản"),
-    ("filter", "Lọc chunk liên quan"),
     ("causal_detect", "Nhận diện câu nhân quả"),
     ("simplify", "Tách câu đơn"),
     ("spo", "Trích xuất subject-predicate-object"),
@@ -60,6 +59,10 @@ class PipelineService:
 
         return chunks
 
+    def filter(self, dataset_dir: Path) -> list[Chunk]:
+        chunks = load_chunks(dataset_dir)
+        return self._pipeline.filter_chunks(chunks, output_path=dataset_dir)
+
     def process(
         self,
         dataset_dir: Path,
@@ -69,13 +72,7 @@ class PipelineService:
             if on_progress is not None:
                 on_progress(stage_key, count)
 
-        docs = load_documents(dataset_dir)
-
-        chunks = self._pipeline.chunk_data(docs, output_path=dataset_dir)
-        report("chunk", len(chunks))
-
-        filtered_chunks = self._pipeline.filter_chunks(chunks, output_path=dataset_dir)
-        report("filter", len(filtered_chunks))
+        filtered_chunks = load_chunks(dataset_dir, filename="chunks_filtered.jsonl")
 
         causal_sentences = self._pipeline.detect_causal_sentences(filtered_chunks, output_path=dataset_dir)
         report("causal_detect", len(causal_sentences))
