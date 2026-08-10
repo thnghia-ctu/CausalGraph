@@ -113,16 +113,21 @@ class Seq2SeqSimplifier:
         })
         return dataset.map(self._tokenize, batched=True, remove_columns=["complex", "simple"])
 
-    def simplify(self, text: str) -> list[str]:
-        inputs = self.tokenizer(text, max_length=MAX_INPUT_LENGTH, truncation=True, return_tensors="pt")
+    def simplify(self, texts: list[str]) -> list[list[str]]:
+        inputs = self.tokenizer(
+            texts, max_length=MAX_INPUT_LENGTH, truncation=True, padding=True, return_tensors="pt"
+        )
         output_ids = self.model.generate(
             **inputs,
             max_length=MAX_TARGET_LENGTH,
             no_repeat_ngram_size=3,
             repetition_penalty=1.3,
         )
-        decoded = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
-        return list(dict.fromkeys(s.strip() for s in decoded.split(SENTENCE_SEPARATOR) if s.strip()))
+        decoded = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        return [
+            list(dict.fromkeys(s.strip() for s in text.split(SENTENCE_SEPARATOR) if s.strip()))
+            for text in decoded
+        ]
 
     def save(self, path: str | Path) -> None:
         self.tokenizer.save_pretrained(path)

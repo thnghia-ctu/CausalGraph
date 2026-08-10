@@ -1,4 +1,5 @@
 import csv
+import itertools
 import logging
 from pathlib import Path
 
@@ -21,26 +22,32 @@ FIELDNAMES = [
     "sentence_index",
 ]
 
+DEFAULT_BATCH_SIZE = 16
+
 
 class SimplifierRunner:
-    def __init__(self, simplifier: Seq2SeqSimplifier | None = None):
+    def __init__(self, simplifier: Seq2SeqSimplifier | None = None, batch_size: int = DEFAULT_BATCH_SIZE):
         if simplifier is None:
             local_checkpoint = SIMPLIFIER_MODEL_DIR / "final"
             source = local_checkpoint if local_checkpoint.exists() else SIMPLIFIER_HF_REPO_ID
             simplifier = Seq2SeqSimplifier.load(source)
         self.simplifier = simplifier
+        self.batch_size = batch_size
 
-    def process_causal_sentence(self, sentence: CausalSentence) -> list[SimplifiedSentence]:
-        simples = self.simplifier.simplify(sentence.sentence)
+    def process_causal_sentences(self, sentences: list[CausalSentence]) -> list[SimplifiedSentence]:
+        simples_batch = self.simplifier.simplify([sentence.sentence for sentence in sentences])
 
-        return [
-            SimplifiedSentence(
-                original_sentence=sentence.sentence,
-                simple_sentence=simple,
-                ref=SimpleRef(sentence=sentence.ref, simple_index=simple_index),
+        rows = []
+        for sentence, simples in zip(sentences, simples_batch):
+            rows.extend(
+                SimplifiedSentence(
+                    original_sentence=sentence.sentence,
+                    simple_sentence=simple,
+                    ref=SimpleRef(sentence=sentence.ref, simple_index=simple_index),
+                )
+                for simple_index, simple in enumerate(simples)
             )
-            for simple_index, simple in enumerate(simples)
-        ]
+        return rows
 
     def simplify_sentences(
         self,
@@ -60,11 +67,11 @@ class SimplifierRunner:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES, delimiter=";")
             writer.writeheader()
 
-            for sentence in causal_only:
+            for batch in itertools.batched(causal_only, self.batch_size):
                 try:
-                    rows = self.process_causal_sentence(sentence)
+                    rows = self.process_causal_sentences(batch)
                 except Exception as error:
-                    LOGGER.error("Lỗi tại câu (doc %s): %s", sentence.doc_id, error)
+                    LOGGER.error("Lỗi tại batch câu (doc %s): %s", batch[0].doc_id, error)
                     continue
 
                 writer.writerows({

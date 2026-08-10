@@ -1,4 +1,5 @@
 import csv
+import itertools
 import logging
 from dataclasses import replace
 from pathlib import Path
@@ -78,11 +79,15 @@ def load_concept_states(output_path: str | Path = CACHE_DIR) -> list[SpoRecord]:
     return records
 
 
+DEFAULT_BATCH_SIZE = 16
+
+
 class ConceptStateRunner:
     def __init__(
         self,
         tagger: PhoBertConceptStateTagger | None = None,
         state_normalizer: StateNormalizer | None = None,
+        batch_size: int = DEFAULT_BATCH_SIZE,
     ):
         if tagger is None:
             local_checkpoint = CONCEPT_STATE_TAGGER_MODEL_DIR / "final"
@@ -90,13 +95,10 @@ class ConceptStateRunner:
             tagger = PhoBertConceptStateTagger.load(source)
         self.tagger = tagger
         self.state_normalizer = state_normalizer or StateNormalizer()
+        self.batch_size = batch_size
 
-    def tag_factor(self, factor_text: str) -> ConceptFactor:
-        if not factor_text.strip():
-            return ConceptFactor(factor_text=factor_text)
-
-        result = self.tagger.extract(factor_text)
-        if result is None:
+    def _build_concept_factor(self, factor_text: str, result) -> ConceptFactor:
+        if not factor_text.strip() or result is None:
             return ConceptFactor(factor_text=factor_text)
 
         state_text = result.state.replace("_", " ") if result.state else ""
@@ -111,12 +113,25 @@ class ConceptStateRunner:
             direction=state_match.state.direction if state_match else 0,
         )
 
-    def enrich_spo_record(self, record: SpoRecord) -> SpoRecord:
-        return replace(
-            record,
-            subject=self.tag_factor(record.subject.factor_text),
-            object=self.tag_factor(record.object.factor_text),
-        )
+    def tag_factors(self, factor_texts: list[str]) -> list[ConceptFactor]:
+        results = self.tagger.extract_batch(factor_texts)
+        return [
+            self._build_concept_factor(factor_text, result)
+            for factor_text, result in zip(factor_texts, results)
+        ]
+
+    def enrich_spo_records(self, records: list[SpoRecord]) -> list[SpoRecord]:
+        factor_texts = []
+        for record in records:
+            factor_texts.append(record.subject.factor_text)
+            factor_texts.append(record.object.factor_text)
+
+        factors = self.tag_factors(factor_texts)
+
+        return [
+            replace(record, subject=factors[2 * i], object=factors[2 * i + 1])
+            for i, record in enumerate(records)
+        ]
 
     def extract_concept_states(
         self,
@@ -134,14 +149,14 @@ class ConceptStateRunner:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES, delimiter=";")
             writer.writeheader()
 
-            for record in spo_records:
+            for batch in itertools.batched(spo_records, self.batch_size):
                 try:
-                    enriched = self.enrich_spo_record(record)
+                    enriched_batch = self.enrich_spo_records(batch)
                 except Exception as error:
-                    LOGGER.error("Lỗi tại SPO record (doc %s): %s", record.doc_id, error)
+                    LOGGER.error("Lỗi tại batch SPO record (doc %s): %s", batch[0].doc_id, error)
                     continue
 
-                writer.writerow({
+                writer.writerows({
                     "sentence": enriched.sentence,
                     "original_sentence": enriched.original_sentence,
                     "subject_factor_text": enriched.subject.factor_text,
@@ -162,9 +177,9 @@ class ConceptStateRunner:
                     "url": enriched.url,
                     "sentence_index": enriched.sentence_index,
                     "simple_index": enriched.simple_index,
-                })
+                } for enriched in enriched_batch)
                 f.flush()
 
-                all_records.append(enriched)
+                all_records.extend(enriched_batch)
 
         return all_records

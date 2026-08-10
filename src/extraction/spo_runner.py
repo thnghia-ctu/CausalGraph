@@ -1,4 +1,5 @@
 import csv
+import itertools
 import logging
 from pathlib import Path
 
@@ -24,32 +25,39 @@ FIELDNAMES = [
     "simple_index",
 ]
 
+DEFAULT_BATCH_SIZE = 16
+
 
 class SpoRunner:
-    def __init__(self, tagger: PhoBertSpoTagger | None = None):
+    def __init__(self, tagger: PhoBertSpoTagger | None = None, batch_size: int = DEFAULT_BATCH_SIZE):
         if tagger is None:
             local_checkpoint = SPO_TAGGER_MODEL_DIR / "final"
             source = local_checkpoint if local_checkpoint.exists() else SPO_TAGGER_HF_REPO_ID
             tagger = PhoBertSpoTagger.load(source)
         self.tagger = tagger
+        self.batch_size = batch_size
 
-    def process_sentence(self, sentence: SimplifiedSentence) -> SpoRecord | None:
-        triple = self.tagger.extract(sentence.simple_sentence)
-        if triple is None:
-            return None
+    def process_sentences(self, sentences: list[SimplifiedSentence]) -> list[SpoRecord]:
+        triples = self.tagger.extract_batch([sentence.simple_sentence for sentence in sentences])
 
-        return SpoRecord(
-            sentence=sentence.simple_sentence,
-            original_sentence=sentence.original_sentence,
-            subject=ConceptFactor(
-                factor_text=triple.subject.text.replace("_", " ") if triple.subject else "",
-            ),
-            predicate=triple.predicate.replace("_", " "),
-            object=ConceptFactor(
-                factor_text=triple.object.text.replace("_", " ") if triple.object else "",
-            ),
-            ref=sentence.ref,
-        )
+        records = []
+        for sentence, triple in zip(sentences, triples):
+            if triple is None:
+                continue
+
+            records.append(SpoRecord(
+                sentence=sentence.simple_sentence,
+                original_sentence=sentence.original_sentence,
+                subject=ConceptFactor(
+                    factor_text=triple.subject.text.replace("_", " ") if triple.subject else "",
+                ),
+                predicate=triple.predicate.replace("_", " "),
+                object=ConceptFactor(
+                    factor_text=triple.object.text.replace("_", " ") if triple.object else "",
+                ),
+                ref=sentence.ref,
+            ))
+        return records
 
     def extract_spo(
         self,
@@ -67,17 +75,14 @@ class SpoRunner:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES, delimiter=";")
             writer.writeheader()
 
-            for sentence in sentences:
+            for batch in itertools.batched(sentences, self.batch_size):
                 try:
-                    record = self.process_sentence(sentence)
+                    records = self.process_sentences(batch)
                 except Exception as error:
-                    LOGGER.error("Lỗi tại câu (doc %s): %s", sentence.doc_id, error)
+                    LOGGER.error("Lỗi tại batch câu (doc %s): %s", batch[0].doc_id, error)
                     continue
 
-                if record is None:
-                    continue
-
-                writer.writerow({
+                writer.writerows({
                     "sentence": record.sentence,
                     "original_sentence": record.original_sentence,
                     "subject": record.subject.factor_text,
@@ -88,9 +93,9 @@ class SpoRunner:
                     "url": record.url,
                     "sentence_index": record.sentence_index,
                     "simple_index": record.simple_index,
-                })
+                } for record in records)
                 f.flush()
 
-                all_records.append(record)
+                all_records.extend(records)
 
         return all_records

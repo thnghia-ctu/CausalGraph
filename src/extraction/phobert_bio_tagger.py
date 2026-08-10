@@ -258,25 +258,51 @@ class PhoBertBioTagger:
         return trainer
 
     def extract(self, text: str):
-        words, _ = words_and_offsets(text)
-        if not words:
-            return None
+        return self.extract_batch([text])[0]
 
-        input_ids, word_index = self._encode_words(words)
+    def extract_batch(self, texts: list[str]):
+        parsed = [words_and_offsets(text) for text in texts]
+        encoded = [
+            (words, *self._encode_words(words)) if words else None
+            for words, _ in parsed
+        ]
+
+        non_empty = [item for item in encoded if item is not None]
+        if not non_empty:
+            return [None] * len(texts)
+
+        pad_id = self.tokenizer.pad_token_id
+        max_len = max(len(input_ids) for _, input_ids, _ in non_empty)
+
+        batch_input_ids = [input_ids + [pad_id] * (max_len - len(input_ids)) for _, input_ids, _ in non_empty]
+        batch_attention_mask = [[1] * len(input_ids) + [0] * (max_len - len(input_ids)) for _, input_ids, _ in non_empty]
+
         inputs = {
-            "input_ids": torch.tensor([input_ids]),
-            "attention_mask": torch.tensor([[1] * len(input_ids)]),
+            "input_ids": torch.tensor(batch_input_ids),
+            "attention_mask": torch.tensor(batch_attention_mask),
         }
         with torch.no_grad():
-            logits = self.model(**inputs).logits[0]
+            logits = self.model(**inputs).logits
         pred_ids = logits.argmax(dim=-1).tolist()
 
-        word_labels: list[str | None] = [None] * len(words)
-        for pos, idx in enumerate(word_index):
-            if idx != -1 and word_labels[idx] is None:
-                word_labels[idx] = self._id2label[pred_ids[pos]]
+        results_by_position = iter(zip(non_empty, pred_ids))
+        results = []
+        for item in encoded:
+            if item is None:
+                results.append(None)
+                continue
 
-        return self._decode(words, word_labels)
+            words, input_ids, word_index = item
+            _, row_pred_ids = next(results_by_position)
+
+            word_labels: list[str | None] = [None] * len(words)
+            for pos, idx in enumerate(word_index):
+                if idx != -1 and word_labels[idx] is None:
+                    word_labels[idx] = self._id2label[row_pred_ids[pos]]
+
+            results.append(self._decode(words, word_labels))
+
+        return results
 
     def save(self, path: str | Path | None = None) -> None:
         path = path or self.MODEL_DIR
