@@ -17,11 +17,14 @@ from services.pipeline_service import get_pipeline_service
 from services.upload_store import parse_url_list_files
 
 
-st.title("Khai phá dữ liệu nhân quả")
-st.caption(
-    "Khai phá các yếu tố chi phối quyết định ứng dụng công cụ số trong sản xuất lúa gạo, "
-    "từ văn bản tiếng Việt đến đồ thị nhân quả ở mức concept."
-)
+title_col, status_col = st.columns([4, 1])
+with title_col:
+    st.title("Khai phá dữ liệu nhân quả")
+    st.caption(
+        "Khai phá các yếu tố chi phối quyết định ứng dụng công cụ số trong sản xuất lúa gạo, "
+        "từ văn bản tiếng Việt đến đồ thị nhân quả ở mức concept."
+    )
+status_placeholder = status_col.empty()
 
 st.subheader("Tập dữ liệu hiện có")
 
@@ -44,7 +47,7 @@ else:
         row[1].write(STATUS_LABELS.get(meta.status, meta.status))
         row[2].write(meta.created_at[:19].replace("T", " "))
 
-        actions = ["crawl", "delete"] if meta.status == STATUS_NEW else ["select", "crawl", "delete"]
+        actions = ["", "crawl", "delete"] if meta.status == STATUS_NEW else ["select", "crawl", "delete"]
         _, *action_cols = row[3].columns([1, *([1] * len(actions))])
 
         for action, col in zip(actions, action_cols):
@@ -53,20 +56,29 @@ else:
                     st.session_state["dataset_id"] = meta.id
                     st.rerun()
             elif action == "crawl":
-                crawl_label = "Tải dữ liệu lại" if meta.status != STATUS_NEW else "Tải dữ liệu"
-                if col.button(crawl_label, key=f"crawl-{meta.id}"):
+                if col.button("Thu thập dữ liệu", key=f"crawl-{meta.id}"):
                     urls = load_source_urls(meta.id)
                     meta.status = STATUS_INGESTING
                     meta.error = ""
                     save_meta(meta)
                     service = get_pipeline_service()
+
                     try:
-                        with st.spinner(f"Đang thu thập dữ liệu cho '{meta.name}'..."):
-                            docs = service.crawl(urls, dataset_dir(meta.id))
-                        meta.stage_counts["crawl"] = len(docs)
+                        with status_placeholder.status(f"Đang thu thập dữ liệu cho '{meta.name}'...") as status:
+                            def on_progress(stage_key: str, count: int) -> None:
+                                meta.stage_counts[stage_key] = count
+                                save_meta(meta)
+                                if stage_key == "crawl":
+                                    status.update(label=f"Đang phân đoạn dữ liệu cho '{meta.name}'...")
+
+                            chunks = service.crawl_and_chunk(urls, dataset_dir(meta.id), on_progress=on_progress)
+                            status.update(
+                                label=f"Đã thu thập và phân đoạn xong cho '{meta.name}'.",
+                                state="complete",
+                            )
                         meta.status = STATUS_CRAWLED
                         save_meta(meta)
-                        st.success(f"Đã thu thập {len(docs)} văn bản cho '{meta.name}'.")
+                        st.success(f"Đã thu thập và phân đoạn xong cho '{meta.name}' ({len(chunks)} chunk).")
                     except Exception as error:
                         meta.status = STATUS_FAILED
                         meta.error = str(error)

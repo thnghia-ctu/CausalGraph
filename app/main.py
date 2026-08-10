@@ -13,15 +13,17 @@ selected_meta = load_meta(dataset_id) if dataset_id else None
 
 index_page = st.Page("pages/index_page.py", title="Bộ dữ liệu", icon="🗂️", default=True)
 ingest_page = st.Page("pages/ingest_page.py", title="Xử lý dữ liệu", icon="⚙️")
+filter_page = st.Page("pages/filter_page.py", title="Lọc dữ liệu", icon="🔍")
 explore_page = st.Page("pages/explore_page.py", title="Khám phá đồ thị", icon="🕸️")
 
-page = st.navigation([index_page, ingest_page, explore_page], position="hidden")
+page = st.navigation([index_page, ingest_page, filter_page, explore_page], position="hidden")
 
 st.sidebar.page_link(index_page)
 if selected_meta is not None:
     st.sidebar.divider()
     st.sidebar.subheader(f":blue[{selected_meta.name}]")
     st.sidebar.page_link(ingest_page)
+    st.sidebar.page_link(filter_page)
     st.sidebar.page_link(explore_page)
 
 page.run()
