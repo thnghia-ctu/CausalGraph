@@ -19,14 +19,16 @@ class PhoBertSpoTagger(PhoBertBioTagger):
     ) -> tuple[list[str], list[str]] | None:
         """Trả về None nếu một span không định vị được (text gán nhãn không phải chuỗi
         con của câu). Câu không có quan hệ (cả ba cột đều rỗng) là mẫu âm hợp lệ theo
-        2.4.2, giữ lại với nhãn toàn "O" thay vì bị loại bỏ."""
+        2.4.2, giữ lại với nhãn toàn "O" thay vì bị loại bỏ. `predicate` rỗng nhưng
+        subject/object có giá trị là quan hệ ngầm định (không có từ nối tường minh) —
+        vẫn giữ lại, chỉ không đánh dấu PRED, khác với subject/object là bắt buộc."""
         words, offsets = words_and_offsets(sentence)
         labels = ["O"] * len(words)
 
         if not predicate.strip() and not subject.strip() and not object_.strip():
             return words, labels
 
-        if not predicate or not mark_span(labels, offsets, sentence, predicate, "PRED"):
+        if predicate and not mark_span(labels, offsets, sentence, predicate, "PRED"):
             return None
         if subject and not mark_span(labels, offsets, sentence, subject, "SUBJ"):
             return None
@@ -41,13 +43,13 @@ class PhoBertSpoTagger(PhoBertBioTagger):
             if label and label != "O":
                 spans[label[2:]].append(i)
 
-        if not spans["PRED"]:
+        if not spans["SUBJ"] or not spans["OBJ"]:
             return None
 
         def to_factor(tag: str) -> Factor | None:
             ids = spans[tag]
             return Factor(text=" ".join(words[i] for i in ids), token_ids=ids) if ids else None
 
-        predicate_text = " ".join(words[i] for i in spans["PRED"])
+        predicate_text = " ".join(words[i] for i in spans["PRED"]) if spans["PRED"] else ""
 
         return SVOTriple(subject=to_factor("SUBJ"), predicate=predicate_text, object=to_factor("OBJ"))
