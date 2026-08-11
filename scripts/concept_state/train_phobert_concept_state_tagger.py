@@ -8,7 +8,11 @@ if str(ROOT) not in sys.path:
 
 from sklearn.model_selection import train_test_split
 
-from configs.config import CONCEPT_STATE_RELATIONS_PATH, CONCEPT_STATE_TAGGER_MODEL_DIR
+from configs.config import (
+    CONCEPT_STATE_DATASET_PATH,
+    CONCEPT_STATE_TAGGER_HF_REPO_ID,
+    CONCEPT_STATE_TAGGER_MODEL_DIR,
+)
 from src.extraction.phobert_concept_state_tagger import PhoBertConceptStateTagger
 
 
@@ -17,7 +21,7 @@ def build_examples(path: Path) -> list[tuple[str, str, str]]:
         reader = csv.DictReader(f)
         return [
             (
-                (row["factor_text"] or "").strip(),
+                (row["sentence"] or "").strip(),
                 (row["concept_candidate"] or "").strip(),
                 (row["state"] or "").strip(),
             )
@@ -26,7 +30,7 @@ def build_examples(path: Path) -> list[tuple[str, str, str]]:
 
 
 def main():
-    examples = build_examples(CONCEPT_STATE_RELATIONS_PATH)
+    examples = build_examples(CONCEPT_STATE_DATASET_PATH)
     train_examples, eval_examples = train_test_split(examples, test_size=0.1, random_state=42)
 
     tagger = PhoBertConceptStateTagger()
@@ -34,8 +38,10 @@ def main():
 
     final_path = CONCEPT_STATE_TAGGER_MODEL_DIR / "final"
     tagger.save(final_path)
-
     print(f"Trained on {len(train_examples)} examples, eval on {len(eval_examples)} -> {final_path}")
+
+    tagger.push_to_hub(CONCEPT_STATE_TAGGER_HF_REPO_ID)
+    print(f"Pushed -> {CONCEPT_STATE_TAGGER_HF_REPO_ID}")
 
 
 if __name__ == "__main__":
