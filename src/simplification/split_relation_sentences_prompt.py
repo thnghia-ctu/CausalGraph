@@ -229,37 +229,6 @@ CSV_FIELDS = [
 NO_RELATION_SENTINEL = -1
 
 
-def build_simple_sentence(sentence: str, subject_text: str, predicate: str | None, object_text: str) -> str:
-    """Ghép cơ học simple_sentence từ 3 span — thay cho việc để LLM tự sinh field
-    này. Vị trí thật của S/P/O trong câu gốc không cố định theo một thứ tự nào:
-    "S giúp O" (S trước), "O vì S" (O trước, P giữa), "nhờ S, O" (P đứng trước cả
-    S lẫn O). Nên sắp cả 3 span theo đúng vị trí ký tự thật trong câu gốc, rồi nối
-    lại bằng đúng đoạn văn bản nằm giữa chúng — không giả định thứ tự cố định.
-
-    Một số span (do ngoại lệ tỉnh lược) không phải substring nguyên văn của câu
-    gốc — khi đó không tìm được vị trí thật, nối tạm bằng khoảng trắng."""
-    spans = [subject_text, object_text]
-    if predicate:
-        spans.append(predicate)
-
-    not_found = len(sentence) + 1
-    positioned = [(sentence.find(text), text) for text in spans]
-    positioned = [(pos if pos != -1 else not_found, text) for pos, text in positioned]
-    positioned.sort(key=lambda item: item[0])
-
-    parts = [positioned[0][1]]
-    for (pos, text), (next_pos, next_text) in zip(positioned, positioned[1:]):
-        connector = " "
-        if pos != not_found and next_pos != not_found:
-            end = pos + len(text)
-            if end <= next_pos:
-                connector = sentence[end:next_pos] or " "
-        parts.append(connector)
-        parts.append(next_text)
-
-    return "".join(parts).strip() + "."
-
-
 def build_prompt(batch: list[dict[str, str]]) -> str:
     sentences_json = json.dumps(
         [{"sentence": item["sentence"], "trigger": item.get("trigger", "")} for item in batch],
@@ -311,9 +280,7 @@ def flatten_batch_result(
         for simple_index, relation in enumerate(relations):
             rows.append({
                 **base,
-                "simple_sentence": build_simple_sentence(
-                    parsed["sentence"], relation["subject_text"], relation["predicate"], relation["object_text"]
-                ),
+                "simple_sentence": "",
                 "simple_index": simple_index,
                 "subject_text": relation["subject_text"],
                 "predicate": relation["predicate"],

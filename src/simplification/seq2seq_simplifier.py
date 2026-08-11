@@ -60,6 +60,7 @@ class Seq2SeqSimplifier:
         output_dir: str | Path = "models/simplifier",
         num_train_epochs: int = 20,
         per_device_train_batch_size: int = 4,
+        learning_rate: float = 3e-5,
         early_stopping_patience: int = 3,
         resume: bool = True,
     ) -> Seq2SeqTrainer:
@@ -77,6 +78,7 @@ class Seq2SeqSimplifier:
             per_device_train_batch_size=per_device_train_batch_size,
             per_device_eval_batch_size=per_device_train_batch_size,
             num_train_epochs=num_train_epochs,
+            learning_rate=learning_rate,
             predict_with_generate=True,
             generation_max_length=MAX_TARGET_LENGTH,
             save_strategy="epoch",
@@ -119,9 +121,7 @@ class Seq2SeqSimplifier:
         )
         output_ids = self.model.generate(
             **inputs,
-            max_length=MAX_TARGET_LENGTH,
-            no_repeat_ngram_size=3,
-            repetition_penalty=1.3,
+            max_length=MAX_TARGET_LENGTH
         )
         decoded = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
         return [
