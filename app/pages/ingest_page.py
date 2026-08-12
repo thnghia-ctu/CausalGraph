@@ -10,7 +10,7 @@ from services.dataset_store import (
     load_meta,
     save_meta,
 )
-from services.pipeline_service import PROCESS_STAGES, STAGE_LABELS, get_pipeline_service
+from services.pipeline_service import PROCESS_STAGES, get_pipeline_service
 
 st.title("Bước 2 — Xử lý dữ liệu")
 
@@ -63,27 +63,23 @@ def _row_count(path) -> int:
     return max(sum(1 for _ in open(path)) - 1, 0)
 
 
-stage_placeholders = {}
-for stage_key, stage_label in PROCESS_STAGES:
-    stage_placeholders[stage_key] = st.empty()
-    count = meta.stage_counts.get(stage_key)
-    stage_placeholders[stage_key].write(
-        f"✅ {stage_label}: {count}" if count is not None else f"⏳ {stage_label}"
-    )
-
-
 @st.fragment(run_every="2s", parallel=True)
 def show_stage_progress():
-    if meta.status != STATUS_INGESTING:
-        return
+    active_stage = next((key for key, _ in PROCESS_STAGES if key not in meta.stage_counts), None)
     for stage_key, stage_label in PROCESS_STAGES:
-        if stage_key in meta.stage_counts:
+        count = meta.stage_counts.get(stage_key)
+        if count is not None:
+            st.write(f"✅ {stage_label}: {count}")
             continue
-        subdir, filename = STAGE_OUTPUT_FILES[stage_key]
-        path = dataset_dir(dataset_id) / subdir / filename
-        if path.exists():
-            stage_placeholders[stage_key].write(f"⏳ {stage_label}: {_row_count(path)}")
-        break
+
+        if meta.status == STATUS_INGESTING and stage_key == active_stage:
+            subdir, filename = STAGE_OUTPUT_FILES[stage_key]
+            path = dataset_dir(dataset_id) / subdir / filename
+            if path.exists():
+                st.write(f"⏳ {stage_label}: {_row_count(path)}")
+                continue
+
+        st.write(f"⏳ {stage_label}")
 
 
 show_stage_progress()
@@ -105,11 +101,9 @@ if st.button(button_label, type="primary"):
 
     meta.status = STATUS_INGESTING
     meta.error = ""
-    for stage_key, stage_label in PROCESS_STAGES:
-        if stage_key in completed_stages:
-            continue
-        meta.stage_counts.pop(stage_key, None)
-        stage_placeholders[stage_key].write(f"⏳ {stage_label}")
+    for stage_key, _ in PROCESS_STAGES:
+        if stage_key not in completed_stages:
+            meta.stage_counts.pop(stage_key, None)
     save_meta(meta)
 
     service = get_pipeline_service()
@@ -117,7 +111,6 @@ if st.button(button_label, type="primary"):
     def on_progress(stage_key: str, count: int) -> None:
         meta.stage_counts[stage_key] = count
         save_meta(meta)
-        stage_placeholders[stage_key].write(f"✅ {STAGE_LABELS[stage_key]}: {count}")
 
     try:
         with st.spinner("Đang chạy pipeline..."):
