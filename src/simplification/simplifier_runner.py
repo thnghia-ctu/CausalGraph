@@ -5,7 +5,7 @@ from pathlib import Path
 
 from configs.config import CACHE_DIR, SIMPLIFIER_HF_REPO_ID, SIMPLIFIER_MODEL_DIR
 from src.data_models.causal_sentence import CausalSentence
-from src.data_models.ref import SimpleRef
+from src.data_models.ref import ChunkRef, DocRef, SentenceRef, SimpleRef
 from src.data_models.simplified_sentence import SimplifiedSentence
 from src.simplification.seq2seq_simplifier import Seq2SeqSimplifier
 
@@ -23,6 +23,32 @@ FIELDNAMES = [
 ]
 
 DEFAULT_BATCH_SIZE = 16
+
+
+def load_simplified_sentences(output_path: str | Path = CACHE_DIR) -> list[SimplifiedSentence]:
+    csv_path = Path(output_path) / "simplified" / "simplified_sentences.csv"
+    if not csv_path.exists():
+        return []
+
+    rows: list[SimplifiedSentence] = []
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f, delimiter=";"):
+            ref = SimpleRef(
+                sentence=SentenceRef(
+                    chunk=ChunkRef(
+                        doc=DocRef(doc_id=row["doc_id"], url=row["url"]),
+                        chunk_id=row["chunk_id"],
+                    ),
+                    sentence_index=int(row["sentence_index"]),
+                ),
+                simple_index=int(row["simple_index"]),
+            )
+            rows.append(SimplifiedSentence(
+                original_sentence=row["original_sentence"],
+                simple_sentence=row["simple_sentence"],
+                ref=ref,
+            ))
+    return rows
 
 
 class SimplifierRunner:

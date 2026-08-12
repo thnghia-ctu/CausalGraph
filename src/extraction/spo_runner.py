@@ -5,6 +5,7 @@ from pathlib import Path
 
 from configs.config import CACHE_DIR, SPO_TAGGER_HF_REPO_ID, SPO_TAGGER_MODEL_DIR
 from src.data_models.concept_factor import ConceptFactor
+from src.data_models.ref import ChunkRef, DocRef, SentenceRef, SimpleRef
 from src.data_models.simplified_sentence import SimplifiedSentence
 from src.data_models.spo_record import SpoRecord
 from src.extraction.phobert_spo_tagger import PhoBertSpoTagger
@@ -26,6 +27,35 @@ FIELDNAMES = [
 ]
 
 DEFAULT_BATCH_SIZE = 16
+
+
+def load_spo_records(output_path: str | Path = CACHE_DIR) -> list[SpoRecord]:
+    csv_path = Path(output_path) / "spo" / "spo_relations.csv"
+    if not csv_path.exists():
+        return []
+
+    records: list[SpoRecord] = []
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f, delimiter=";"):
+            ref = SimpleRef(
+                sentence=SentenceRef(
+                    chunk=ChunkRef(
+                        doc=DocRef(doc_id=row["doc_id"], url=row["url"]),
+                        chunk_id=row["chunk_id"],
+                    ),
+                    sentence_index=int(row["sentence_index"]),
+                ),
+                simple_index=int(row["simple_index"]),
+            )
+            records.append(SpoRecord(
+                sentence=row["sentence"],
+                original_sentence=row.get("original_sentence", ""),
+                subject=ConceptFactor(factor_text=row["subject"]),
+                predicate=row["predicate"],
+                object=ConceptFactor(factor_text=row["object"]),
+                ref=ref,
+            ))
+    return records
 
 
 class SpoRunner:

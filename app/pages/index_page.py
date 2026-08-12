@@ -42,7 +42,7 @@ else:
     pending_delete = st.session_state.get("pending_delete_id")
 
     for meta in datasets:
-        row = st.columns([3, 2, 3, 3])
+        row = st.columns([2, 2, 2, 4])
         row[0].write(meta.name)
         row[1].write(STATUS_LABELS.get(meta.status, meta.status))
         row[2].write(meta.created_at[:19].replace("T", " "))

@@ -9,7 +9,7 @@ from configs.config import CACHE_DIR
 from src.causal_detection.trigger_classifier import TriggerCausalClassifier
 from src.data_models.causal_sentence import CausalSentence
 from src.data_models.chunk import Chunk
-from src.data_models.ref import SentenceRef
+from src.data_models.ref import ChunkRef, DocRef, SentenceRef
 
 
 LOGGER = logging.getLogger(__name__)
@@ -30,6 +30,31 @@ FIELDNAMES = [
 
 class CausalClassifier(Protocol):
     def predict(self, texts: list[str]) -> list[str]: ...
+
+
+def load_causal_sentences(output_path: str | Path = CACHE_DIR) -> list[CausalSentence]:
+    csv_path = Path(output_path) / "causal_sentences" / "causal_sentences.csv"
+    if not csv_path.exists():
+        return []
+
+    rows: list[CausalSentence] = []
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f, delimiter=";"):
+            ref = SentenceRef(
+                chunk=ChunkRef(
+                    doc=DocRef(doc_id=row["doc_id"], url=row["url"]),
+                    chunk_id=row["chunk_id"],
+                ),
+                sentence_index=int(row["sentence_index"]),
+            )
+            rows.append(CausalSentence(
+                sentence=row["sentence"],
+                weak_label=row["weak_label"],
+                trigger=row["trigger"],
+                ref=ref,
+                human_label=row.get("human_label", ""),
+            ))
+    return rows
 
 
 class CausalSentenceRunner:
