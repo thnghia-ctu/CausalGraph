@@ -206,9 +206,9 @@ class PhoBertBioTagger:
         train_examples: list[tuple[str, ...]],
         eval_examples: list[tuple[str, ...]] | None = None,
         output_dir: str | Path | None = None,
-        num_train_epochs: int = 20,
+        num_train_epochs: int = 100,
         per_device_train_batch_size: int = 16,
-        early_stopping_patience: int = 3,
+        early_stopping_patience: int = 10,
         resume: bool = True,
     ) -> Trainer:
         """Mỗi example là tuple text thô (xem `_build_labels` của subclass để biết thứ tự

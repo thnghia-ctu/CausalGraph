@@ -5,11 +5,15 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.causal_detection.causal_sentence_runner import load_causal_sentences
 from src.chunking.chunk_runner import load_chunks
 from src.crawlers.crawl_runner import load_documents
 from src.data_models.chunk import Chunk
 from src.data_models.spo_record import SpoRecord
+from src.extraction.concept_state_runner import load_concept_states
+from src.extraction.spo_runner import load_spo_records
 from src.pipeline import Pipeline
+from src.simplification.simplifier_runner import load_simplified_sentences
 
 CRAWL_STAGE = ("crawl", "Thu thập văn bản")
 PROCESS_STAGES = (
@@ -67,23 +71,38 @@ class PipelineService:
         self,
         dataset_dir: Path,
         on_progress: ProgressCallback | None = None,
+        completed_stages: set[str] | None = None,
     ) -> list[SpoRecord]:
+        completed_stages = completed_stages or set()
+
         def report(stage_key: str, count: int) -> None:
             if on_progress is not None:
                 on_progress(stage_key, count)
 
         filtered_chunks = load_chunks(dataset_dir, filename="chunks_filtered.jsonl")
 
-        causal_sentences = self._pipeline.detect_causal_sentences(filtered_chunks, output_path=dataset_dir)
+        if "causal_detect" in completed_stages:
+            causal_sentences = load_causal_sentences(dataset_dir)
+        else:
+            causal_sentences = self._pipeline.detect_causal_sentences(filtered_chunks, output_path=dataset_dir)
         report("causal_detect", len(causal_sentences))
 
-        simplified = self._pipeline.simplify_sentences(causal_sentences, output_path=dataset_dir)
+        if "simplify" in completed_stages:
+            simplified = load_simplified_sentences(dataset_dir)
+        else:
+            simplified = self._pipeline.simplify_sentences(causal_sentences, output_path=dataset_dir)
         report("simplify", len(simplified))
 
-        spo_records = self._pipeline.extract_spo(simplified, output_path=dataset_dir)
+        if "spo" in completed_stages:
+            spo_records = load_spo_records(dataset_dir)
+        else:
+            spo_records = self._pipeline.extract_spo(simplified, output_path=dataset_dir)
         report("spo", len(spo_records))
 
-        concept_states = self._pipeline.extract_concept_states(spo_records, output_path=dataset_dir)
+        if "concept_state" in completed_stages:
+            concept_states = load_concept_states(dataset_dir)
+        else:
+            concept_states = self._pipeline.extract_concept_states(spo_records, output_path=dataset_dir)
         report("concept_state", len(concept_states))
 
         return concept_states

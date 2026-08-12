@@ -51,6 +51,18 @@ if meta.status == STATUS_FAILED and meta.error:
 st.divider()
 st.subheader("Các bước xử lý")
 
+STAGE_OUTPUT_FILES = {
+    "causal_detect": ("causal_sentences", "causal_sentences.csv"),
+    "simplify": ("simplified", "simplified_sentences.csv"),
+    "spo": ("spo", "spo_relations.csv"),
+    "concept_state": ("concept_state", "concept_state_relations.csv"),
+}
+
+
+def _row_count(path) -> int:
+    return max(sum(1 for _ in open(path)) - 1, 0)
+
+
 stage_placeholders = {}
 for stage_key, stage_label in PROCESS_STAGES:
     stage_placeholders[stage_key] = st.empty()
@@ -59,17 +71,46 @@ for stage_key, stage_label in PROCESS_STAGES:
         f"✅ {stage_label}: {count}" if count is not None else f"⏳ {stage_label}"
     )
 
+
+@st.fragment(run_every="2s", parallel=True)
+def show_stage_progress():
+    if meta.status != STATUS_INGESTING:
+        return
+    for stage_key, stage_label in PROCESS_STAGES:
+        if stage_key in meta.stage_counts:
+            continue
+        subdir, filename = STAGE_OUTPUT_FILES[stage_key]
+        path = dataset_dir(dataset_id) / subdir / filename
+        if path.exists():
+            stage_placeholders[stage_key].write(f"⏳ {stage_label}: {_row_count(path)}")
+        break
+
+
+show_stage_progress()
+
 st.divider()
 
-button_label = "Chạy lại pipeline" if meta.status == STATUS_READY else "Bắt đầu xử lý pipeline"
+PROCESS_STAGE_KEYS = {stage_key for stage_key, _ in PROCESS_STAGES}
+resuming = meta.status != STATUS_READY and bool(set(meta.stage_counts) & PROCESS_STAGE_KEYS)
+
+if meta.status == STATUS_READY:
+    button_label = "Chạy lại pipeline"
+elif resuming:
+    button_label = "Tiếp tục xử lý pipeline"
+else:
+    button_label = "Bắt đầu xử lý pipeline"
+
 if st.button(button_label, type="primary"):
+    completed_stages = set(meta.stage_counts) & PROCESS_STAGE_KEYS if resuming else set()
+
     meta.status = STATUS_INGESTING
     meta.error = ""
-    save_meta(meta)
-
     for stage_key, stage_label in PROCESS_STAGES:
+        if stage_key in completed_stages:
+            continue
         meta.stage_counts.pop(stage_key, None)
         stage_placeholders[stage_key].write(f"⏳ {stage_label}")
+    save_meta(meta)
 
     service = get_pipeline_service()
 
@@ -80,7 +121,7 @@ if st.button(button_label, type="primary"):
 
     try:
         with st.spinner("Đang chạy pipeline..."):
-            service.process(dataset_dir(dataset_id), on_progress=on_progress)
+            service.process(dataset_dir(dataset_id), on_progress=on_progress, completed_stages=completed_stages)
     except Exception as error:
         meta.status = STATUS_FAILED
         meta.error = str(error)
@@ -94,6 +135,6 @@ if st.button(button_label, type="primary"):
     st.rerun()
 
 st.caption(
-    "Thu thập, phân đoạn và lọc dữ liệu đã thực hiện ở các bước trước. Chạy lại ở đây sẽ xử lý lại từ "
-    "dữ liệu đã lọc, các bước sau luôn ghi đè kết quả cũ."
+    "Thu thập, phân đoạn và lọc dữ liệu đã thực hiện ở các bước trước. Nếu pipeline đang dang dở, bấm nút sẽ "
+    "chạy tiếp từ bước chưa hoàn thành; nếu đã xong toàn bộ, bấm sẽ chạy lại từ đầu và ghi đè kết quả cũ."
 )

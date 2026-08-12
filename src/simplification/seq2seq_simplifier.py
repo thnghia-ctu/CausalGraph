@@ -58,10 +58,10 @@ class Seq2SeqSimplifier:
         train_pairs: list[tuple[str, str]],
         eval_pairs: list[tuple[str, str]] | None = None,
         output_dir: str | Path = "models/simplifier",
-        num_train_epochs: int = 20,
+        num_train_epochs: int = 100,
         per_device_train_batch_size: int = 4,
         learning_rate: float = 3e-5,
-        early_stopping_patience: int = 3,
+        early_stopping_patience: int = 10,
         resume: bool = True,
     ) -> Seq2SeqTrainer:
         """num_train_epochs là mức trần; nếu có eval_pairs, training tự dừng sớm
