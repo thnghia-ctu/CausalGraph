@@ -261,6 +261,16 @@ class PhoBertBioTagger:
         return self.extract_batch([text])[0]
 
     def extract_batch(self, texts: list[str]):
+        results = []
+        for item in self.predict_word_labels(texts):
+            if item is None:
+                results.append(None)
+            else:
+                words, word_labels = item
+                results.append(self._decode(words, word_labels))
+        return results
+
+    def predict_word_labels(self, texts: list[str]) -> list[tuple[list[str], list[str | None]] | None]:
         parsed = [words_and_offsets(text) for text in texts]
         encoded = [
             (words, *self._encode_words(words)) if words else None
@@ -300,7 +310,7 @@ class PhoBertBioTagger:
                 if idx != -1 and word_labels[idx] is None:
                     word_labels[idx] = self._id2label[row_pred_ids[pos]]
 
-            results.append(self._decode(words, word_labels))
+            results.append((words, word_labels))
 
         return results
 

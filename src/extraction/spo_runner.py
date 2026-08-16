@@ -9,6 +9,8 @@ from src.data_models.ref import ChunkRef, DocRef, SentenceRef, SimpleRef
 from src.data_models.simplified_sentence import SimplifiedSentence
 from src.data_models.spo_record import SpoRecord
 from src.extraction.phobert_spo_tagger import PhoBertSpoTagger
+from src.extraction.relation_extractor import RelationExtractor
+from src.extraction.vncorenlp_parser import VnCoreNLPParser
 
 
 LOGGER = logging.getLogger(__name__)
@@ -59,12 +61,18 @@ def load_spo_records(output_path: str | Path = CACHE_DIR) -> list[SpoRecord]:
 
 
 class SpoRunner:
-    def __init__(self, tagger: PhoBertSpoTagger | None = None, batch_size: int = DEFAULT_BATCH_SIZE):
+    def __init__(
+        self,
+        tagger: PhoBertSpoTagger | None = None,
+        relation_extractor: RelationExtractor | None = None,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+    ):
         if tagger is None:
             local_checkpoint = SPO_TAGGER_MODEL_DIR / "final"
             source = local_checkpoint if local_checkpoint.exists() else SPO_TAGGER_HF_REPO_ID
             tagger = PhoBertSpoTagger.load(source)
         self.tagger = tagger
+        self.relation_extractor = relation_extractor
         self.batch_size = batch_size
 
     def process_sentences(self, sentences: list[SimplifiedSentence]) -> list[SpoRecord]:
@@ -87,6 +95,28 @@ class SpoRunner:
                 ),
                 ref=sentence.ref,
             ))
+        return records
+
+    def process_sentences_with_relation_extractor(self, sentences: list[SimplifiedSentence]) -> list[SpoRecord]:
+        if self.relation_extractor is None:
+            self.relation_extractor = RelationExtractor()
+
+        records = []
+        for sentence in sentences:
+            parsed_sentences = VnCoreNLPParser.parse_text(sentence.simple_sentence)
+            for relation in self.relation_extractor.extract_causal_relation(parsed_sentences):
+                records.append(SpoRecord(
+                    sentence=sentence.simple_sentence,
+                    original_sentence=sentence.original_sentence,
+                    subject=ConceptFactor(
+                        factor_text=relation.source.text.replace("_", " ") if relation.source else "",
+                    ),
+                    predicate=relation.trigger.text.replace("_", " "),
+                    object=ConceptFactor(
+                        factor_text=relation.target.text.replace("_", " ") if relation.target else "",
+                    ),
+                    ref=sentence.ref,
+                ))
         return records
 
     def extract_spo(

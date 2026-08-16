@@ -46,10 +46,10 @@ def main():
         )
         rows.append({
             "Mô hình": name,
-            "Accuracy": accuracy_score(labels, predictions),
-            "Precision": precision,
-            "Recall": recall,
-            "F1-score": f1,
+            "Accuracy": round(accuracy_score(labels, predictions), 4),
+            "Precision": round(precision, 4),
+            "Recall": round(recall, 4),
+            "F1-score": round(f1, 4),
         })
 
     METRICS_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

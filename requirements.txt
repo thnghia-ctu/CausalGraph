@@ -24,3 +24,7 @@ accelerate
 datasets
 fasttext-wheel
 streamlit
+evaluate
+rouge_score
+bert_score
+sacremoses
