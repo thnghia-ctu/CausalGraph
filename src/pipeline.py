@@ -61,9 +61,9 @@ class Pipeline:
     @cached_property
     def causal_sentence_runner(self) -> "CausalSentenceRunner":
         from src.causal_detection.causal_sentence_runner import CausalSentenceRunner
-        from src.causal_detection.fasttext_classifier import FastTextCausalClassifier
+        from src.causal_detection.voting_classifier import VotingCausalClassifier
 
-        return CausalSentenceRunner(classifier=FastTextCausalClassifier.load())
+        return CausalSentenceRunner(classifier=VotingCausalClassifier())
 
     @cached_property
     def simplifier_runner(self) -> "SimplifierRunner":
