@@ -1,3 +1,4 @@
+import argparse
 import sys
 from pathlib import Path
 
@@ -9,12 +10,11 @@ import evaluate
 import pandas as pd
 from sacrebleu.tokenizers.tokenizer_13a import Tokenizer13a
 
-from configs.config import BASE_DIR, SIMPLIFIER_HF_REPO_ID, SIMPLIFIER_MODEL_DIR
+from configs.config import BASE_DIR, SIMPLIFIER_VARIANTS
 from src.simplification.seq2seq_simplifier import SENTENCE_SEPARATOR, Seq2SeqSimplifier
 
 TEST_SET_PATH = BASE_DIR / "data/eval/simplification_test.csv"
-PREDICTIONS_OUTPUT_PATH = BASE_DIR / "output/evals/simplifier_predictions.csv"
-METRICS_OUTPUT_PATH = BASE_DIR / "output/evals/simplifier_metrics.csv"
+OUTPUT_DIR = BASE_DIR / "output/evals"
 BATCH_SIZE = 16
 BERTSCORE_LANG = "vi"
 
@@ -24,9 +24,9 @@ def load_test_set() -> pd.DataFrame:
     return df[df["simple_sentences"].str.strip() != ""]
 
 
-def load_simplifier() -> Seq2SeqSimplifier:
-    local_checkpoint = SIMPLIFIER_MODEL_DIR / "final"
-    source = local_checkpoint if local_checkpoint.exists() else SIMPLIFIER_HF_REPO_ID
+def load_simplifier(variant: dict) -> Seq2SeqSimplifier:
+    local_checkpoint = variant["model_dir"] / "final"
+    source = local_checkpoint if local_checkpoint.exists() else variant["hf_repo_id"]
     return Seq2SeqSimplifier.load(source)
 
 
@@ -35,11 +35,19 @@ def vi_tokenize(text: str) -> list[str]:
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", choices=sorted(SIMPLIFIER_VARIANTS), default="vit5")
+    args = parser.parse_args()
+    variant = SIMPLIFIER_VARIANTS[args.model]
+
+    predictions_output_path = OUTPUT_DIR / f"simplifier_predictions_{args.model}.csv"
+    metrics_output_path = OUTPUT_DIR / f"simplifier_metrics_{args.model}.csv"
+
     df = load_test_set()
     originals = df["sentence"].tolist()
     gold_simples = [s.split(SENTENCE_SEPARATOR) for s in df["simple_sentences"].tolist()]
 
-    simplifier = load_simplifier()
+    simplifier = load_simplifier(variant)
     predicted_simples: list[list[str]] = []
     for i in range(0, len(originals), BATCH_SIZE):
         predicted_simples.extend(simplifier.simplify(originals[i : i + BATCH_SIZE]))
@@ -50,7 +58,7 @@ def main():
     predicted_counts = [len(p) for p in predicted_simples]
     count_matches = [gc == pc for gc, pc in zip(gold_counts, predicted_counts)]
 
-    PREDICTIONS_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    predictions_output_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({
         "sentence": originals,
         "gold_simple_sentences": references,
@@ -58,7 +66,7 @@ def main():
         "gold_count": gold_counts,
         "predicted_count": predicted_counts,
         "count_match": count_matches,
-    }).to_csv(PREDICTIONS_OUTPUT_PATH, index=False, encoding="utf-8-sig")
+    }).to_csv(predictions_output_path, index=False, encoding="utf-8-sig")
 
     rouge = evaluate.load("rouge")
     sari = evaluate.load("sari")
@@ -88,10 +96,10 @@ def main():
         "1 câu → 1 câu, áp trên văn bản đã ghép nhiều câu chỉ mang tính tham khảo bổ sung."
     )
 
-    METRICS_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame([summary]).to_csv(METRICS_OUTPUT_PATH, index=False, encoding="utf-8-sig")
-    print(f"Đã ghi metrics tổng hợp vào {METRICS_OUTPUT_PATH}")
-    print(f"Đã ghi dự đoán từng dòng vào {PREDICTIONS_OUTPUT_PATH}")
+    metrics_output_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame([summary]).to_csv(metrics_output_path, index=False, encoding="utf-8-sig")
+    print(f"Đã ghi metrics tổng hợp vào {metrics_output_path}")
+    print(f"Đã ghi dự đoán từng dòng vào {predictions_output_path}")
 
 
 if __name__ == "__main__":

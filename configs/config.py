@@ -37,6 +37,21 @@ SIMPLIFICATION_SENTENCES_PATH = BASE_DIR / "data/simplification/simplificated_se
 SIMPLIFIER_MODEL_DIR = BASE_DIR / "models/simplifier"
 SIMPLIFIER_HF_REPO_ID = "thnghia-ctu/vi-sentence-simplifier"
 
+# Các biến thể model cho Seq2SeqSimplifier — "vit5" là model chính (dùng bởi
+# SimplifierRunner ở production), các biến thể khác chỉ để train/eval đối chiếu.
+SIMPLIFIER_VARIANTS = {
+    "vit5": {
+        "model_name": "VietAI/vit5-base",
+        "model_dir": SIMPLIFIER_MODEL_DIR,
+        "hf_repo_id": SIMPLIFIER_HF_REPO_ID,
+    },
+    "bartpho": {
+        "model_name": "vinai/bartpho-syllable",
+        "model_dir": BASE_DIR / "models/simplifier_bartpho",
+        "hf_repo_id": "thnghia-ctu/vi-sentence-simplifier-bartpho",
+    },
+}
+
 SPO_TAGGER_MODEL_DIR = BASE_DIR / "models/spo_tagger"
 SPO_TAGGER_HF_REPO_ID = "thnghia-ctu/vi-spo-tagger"
 SPO_RELATIONS_PATH = BASE_DIR / "data/SPO/relations.csv"

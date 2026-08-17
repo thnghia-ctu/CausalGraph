@@ -1,3 +1,4 @@
+import argparse
 import sys
 from pathlib import Path
 
@@ -8,7 +9,7 @@ if str(ROOT) not in sys.path:
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from configs.config import SIMPLIFICATION_SPO_PATH, SIMPLIFIER_HF_REPO_ID, SIMPLIFIER_MODEL_DIR
+from configs.config import SIMPLIFICATION_SPO_PATH, SIMPLIFIER_VARIANTS
 from src.simplification.seq2seq_simplifier import SENTENCE_SEPARATOR, Seq2SeqSimplifier
 
 
@@ -22,18 +23,23 @@ def build_pairs(path: Path) -> list[tuple[str, str]]:
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", choices=sorted(SIMPLIFIER_VARIANTS), default="vit5")
+    args = parser.parse_args()
+    variant = SIMPLIFIER_VARIANTS[args.model]
+
     pairs = build_pairs(SIMPLIFICATION_SPO_PATH)
     train_pairs, eval_pairs = train_test_split(pairs, test_size=0.1, random_state=42)
 
-    simplifier = Seq2SeqSimplifier()
-    simplifier.fit(train_pairs, eval_pairs=eval_pairs, output_dir=SIMPLIFIER_MODEL_DIR)
+    simplifier = Seq2SeqSimplifier(model_name=variant["model_name"])
+    simplifier.fit(train_pairs, eval_pairs=eval_pairs, output_dir=variant["model_dir"])
 
-    final_path = SIMPLIFIER_MODEL_DIR / "final"
+    final_path = variant["model_dir"] / "final"
     simplifier.save(final_path)
     print(f"Trained on {len(train_pairs)} pairs, eval on {len(eval_pairs)} -> {final_path}")
 
-    simplifier.push_to_hub(SIMPLIFIER_HF_REPO_ID)
-    print(f"Pushed -> {SIMPLIFIER_HF_REPO_ID}")
+    simplifier.push_to_hub(variant["hf_repo_id"])
+    print(f"Pushed -> {variant['hf_repo_id']}")
 
 
 if __name__ == "__main__":
