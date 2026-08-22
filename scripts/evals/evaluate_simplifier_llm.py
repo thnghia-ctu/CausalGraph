@@ -42,6 +42,18 @@ Với mỗi câu trong danh sách đầu vào, tách câu thành một hoặc nh
 * Không được biến hệ quả gián tiếp thành tác động trực tiếp.
 * Nếu câu gốc đã đơn giản (chỉ một quan hệ), trả về đúng một câu đơn giống câu gốc.
 
+## Cách xử lý danh sách/liệt kê — dễ làm sai nhất, đọc kỹ
+
+* Nếu một câu liệt kê nhiều thực thể/đối tượng cùng đóng vai trò trong **một** hành động/quan hệ duy nhất (subject, predicate hoặc object là một cụm liệt kê, nhưng bản chất vẫn chỉ là MỘT quan hệ), **giữ nguyên cả cụm liệt kê đó trong một câu đơn** — TUYỆT ĐỐI KHÔNG tách theo từng tổ hợp/từng phần tử của danh sách.
+
+  Ví dụ SAI (nổ tổ hợp): câu gốc "Khu thử nghiệm giúp **nông dân, chuyên gia** thử **công nghệ, sáng kiến** mới từ **người nông dân, nhà khoa học** trong và ngoài nước" KHÔNG được tách thành 8-12 câu theo từng tổ hợp chủ thể × đối tượng × nguồn. Đây vẫn là MỘT quan hệ duy nhất (khu thử nghiệm → giúp thử nghiệm), chỉ có các vai trò là cụm liệt kê — giữ nguyên 1 câu đơn, gần như y hệt câu gốc.
+
+* Chỉ tách thành nhiều câu khi câu chứa nhiều HÀNH ĐỘNG/KẾT QUẢ độc lập thật sự — tức là các vế dùng chung chủ ngữ/động từ nhưng mỗi vế là một trạng thái/kết quả riêng biệt đáng kể (thường nhận ra qua nhiều động từ khác nhau, hoặc nhiều kết quả rõ ràng tách bạch về nội dung, không chỉ khác nhau ở một danh từ trong cùng một vai trò).
+
+  Ví dụ ĐÚNG (kết quả liệt kê thật sự): câu gốc "Robot giúp nông dân tăng năng suất, chất lượng sản phẩm" được tách thành 2 câu: "Robot giúp nông dân tăng năng suất." và "Robot giúp nông dân tăng chất lượng sản phẩm." — vì "tăng năng suất" và "tăng chất lượng sản phẩm" là hai kết quả khác nhau, không phải hai giá trị của cùng một vai trò.
+
+* Khi không chắc một danh sách là "nhiều giá trị của cùng một vai trò" (giữ nguyên) hay "nhiều kết quả độc lập" (tách), ưu tiên GIỮ NGUYÊN — tách nhầm (over-split) làm hỏng dữ liệu nặng hơn nhiều so với gộp nhầm.
+
 ## Đầu vào
 
 $sentences
@@ -70,18 +82,41 @@ Chỉ trả về một mảng JSON hợp lệ theo đúng schema sau:
 CSV_FIELDS = ["item_id", "sentence", "simple_sentences"]
 
 
+_QUOTE_NORMALIZE = str.maketrans({
+    "“": '"', "”": '"',  # “ ”
+    "‘": "'", "’": "'",  # ‘ ’
+})
+
+
+def _normalize_for_compare(text: str) -> str:
+    """Model hay tự chuẩn hóa ngoặc kép/nháy cong thành thẳng khi echo lại câu —
+    không phải dấu hiệu lệch item, nên bỏ qua khác biệt này khi so khớp."""
+    return text.translate(_QUOTE_NORMALIZE).strip()
+
+
 def flatten_batch_result(
     batch: list[dict[str, str]],
     result: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    return [
-        {
+    if len(result) != len(batch):
+        raise ValueError(
+            f"Batch có {len(batch)} câu nhưng LLM trả về {len(result)} phần tử — "
+            "có khả năng bị lệch item_id nếu cứ ghép theo vị trí."
+        )
+
+    rows = []
+    for item, parsed in zip(batch, result):
+        if _normalize_for_compare(parsed["sentence"]) != _normalize_for_compare(item["sentence"]):
+            raise ValueError(
+                f"Lệch thứ tự ở item_id={item['item_id']}: gửi {item['sentence']!r}, "
+                f"LLM echo lại {parsed['sentence']!r}."
+            )
+        rows.append({
             "item_id": item["item_id"],
             "sentence": parsed["sentence"],
             "simple_sentences": SENTENCE_SEPARATOR.join(parsed["simple_sentences"]),
-        }
-        for item, parsed in zip(batch, result)
-    ]
+        })
+    return rows
 
 
 def load_test_set() -> pd.DataFrame:
@@ -106,7 +141,7 @@ def fetch_predictions(model_key: str, items: list[dict[str, str]]) -> dict[str, 
     if remaining:
         print(f"{model_key}: {len(done)} câu đã có sẵn, gọi API cho {len(remaining)} câu còn lại.")
         processor = BatchProcessor(
-            llm=OpenRouterClient(model=MODELS[model_key]),
+            llm=OpenRouterClient(model=MODELS[model_key], max_tokens=16000),
             items=remaining,
             prompt=PROMPT,
             flatten_fn=flatten_batch_result,
