@@ -1,29 +1,23 @@
-import bootstrap
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 
-bootstrap.ensure_repo_root_on_path()
+from app.backend.api.health import router as health_router
 
-import streamlit as st
 
-from services.dataset_store import load_meta
+app = FastAPI(
+    title="Personal Pipeline App",
+)
 
-st.set_page_config(page_title="CausalGraph", page_icon="🕸️", layout="wide")
+app.include_router(health_router)
 
-dataset_id = st.session_state.get("dataset_id")
-selected_meta = load_meta(dataset_id) if dataset_id else None
+templates = Jinja2Templates(
+    directory="app/frontend/templates"
+)
 
-index_page = st.Page("pages/index_page.py", title="Bộ dữ liệu", icon="🗂️", default=True)
-ingest_page = st.Page("pages/ingest_page.py", title="Xử lý dữ liệu", icon="⚙️")
-filter_page = st.Page("pages/filter_page.py", title="Lọc dữ liệu", icon="🔍")
-explore_page = st.Page("pages/explore_page.py", title="Khám phá đồ thị", icon="🕸️")
 
-page = st.navigation([index_page, ingest_page, filter_page, explore_page], position="hidden")
-
-st.sidebar.page_link(index_page)
-if selected_meta is not None:
-    st.sidebar.divider()
-    st.sidebar.subheader(f":blue[{selected_meta.name}]")
-    st.sidebar.page_link(filter_page)
-    st.sidebar.page_link(ingest_page)
-    st.sidebar.page_link(explore_page)
-
-page.run()
+@app.get("/")
+def home(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+    )

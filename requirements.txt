@@ -27,3 +27,9 @@ evaluate
 rouge_score
 bert_score
 sacremoses
+
+# web app
+fastapi
+uvicorn
+jinja2
+python-multipart
