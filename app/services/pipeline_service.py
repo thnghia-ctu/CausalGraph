@@ -32,18 +32,6 @@ class PipelineService:
     def __init__(self):
         self._pipeline = Pipeline()
 
-    def crawl(
-        self,
-        urls: list[str],
-        dataset_dir: Path,
-        on_progress: ProgressCallback | None = None,
-    ) -> list[str]:
-        self._pipeline.crawl_data(urls, output_path=dataset_dir)
-        docs = load_documents(dataset_dir)
-        if on_progress is not None:
-            on_progress("crawl", len(docs))
-        return docs
-
     def crawl_and_chunk(
         self,
         urls: list[str],
