@@ -1,13 +1,37 @@
 from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
 
-router= APIRouter()
+from app.constants.cons import STEP_LABELS, STATUS_LABELS
+from app.services.dataset_store import (
+    get_progress,
+    list_datasets,
+)
 
-template=Jinja2Templates(directory="app/frontend/templates")
+router = APIRouter()
+
+template = Jinja2Templates(directory="app/frontend/templates")
 
 @router.get("/")
 def home(request: Request):
+    datasets = [
+        {
+            "id": meta.id,
+            "name": meta.name,
+            "status": meta.status,
+            "status_label": STATUS_LABELS.get(meta.status, meta.status),
+            "step": meta.step,
+            "step_label": STEP_LABELS.get(meta.step, ""),
+            "stage_counts": meta.stage_counts,
+            "error": meta.error,
+            "progress": get_progress(meta),
+            "created_at": meta.created_at,
+            "source_url_count": meta.source_url_count,
+        }
+        for meta in list_datasets()
+    ]
+
     return template.TemplateResponse(
         request=request,
         name="index.html",
+        context={"datasets": datasets},
     )

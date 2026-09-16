@@ -15,36 +15,54 @@
       </tr>
     </thead>
     <tbody>
+      {% for dataset in datasets %}
       <tr>
-        <th scope="row">1</th>
-        <td>Mark</td>
-        <td>Otto</td>
-        <td>@mdo</td>
+        <td>{{ dataset.name }}</td>
+        <td id="dataset-status-{{ dataset.id }}">{{ dataset.status_label }}</td>
+        <td>{{ dataset.created_at[:19].replace("T", " ") }}</td>
+        <td>
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm"
+            hx-post="/api/datasets/{{ dataset.id }}/crawl"
+            hx-target="#dataset-progress-{{ dataset.id }}"
+            hx-swap="outerHTML"
+            title="Crawl"
+            aria-label="Crawl"
+          >
+            &#8635;
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            hx-delete="/api/datasets/{{ dataset.id }}"
+            hx-confirm="Xóa tập dữ liệu này?"
+            hx-on::after-request="if (event.detail.successful) this.closest('tr').remove()"
+            title="Xóa"
+            aria-label="Xóa"
+          >
+            &#128465;
+          </button>
+        </td>
       </tr>
+      {% include "datasets/_progress.html" %} {% else %}
       <tr>
-        <th scope="row">2</th>
-        <td>Jacob</td>
-        <td>Thornton</td>
-        <td>@fat</td>
+        <td colspan="4" class="text-center">Chưa có tập dữ liệu nào.</td>
       </tr>
-      <tr>
-        <th scope="row">3</th>
-        <td>John</td>
-        <td>Doe</td>
-        <td>@social</td>
-      </tr>
+      {% endfor %}
     </tbody>
   </table>
 
   <button
     type="button"
-    class="btn btn-primary"
+    class="btn btn-primary mt-5"
     data-bs-toggle="modal"
     data-bs-target="#createDataModal"
   >
     Thêm tập dữ liệu
   </button>
 </div>
+
 <div
   class="modal fade"
   id="createDataModal"
@@ -65,7 +83,7 @@
         ></button>
       </div>
 
-      <form method="post" enctype="multipart/form-data">
+      <form method="post" action="/api/datasets" enctype="multipart/form-data">
         <div class="modal-body">
           <div class="mb-3">
             <label for="dataName" class="form-label"> Tên tập dữ liệu </label>
