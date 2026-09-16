@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from charset_normalizer import from_bytes
 
@@ -103,6 +103,16 @@ def get_datasets():
         }
         for meta in list_datasets()
     ]
+
+
+@router.post("/api/session/dataset/{dataset_id}")
+def select_dataset(dataset_id: str, request: Request):
+    dataset = load_meta(dataset_id)
+    if dataset is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tập dữ liệu.")
+    request.session["data_id"] = dataset_id
+    request.session["data_name"] = dataset.name
+    return Response(status_code=200, headers={"HX-Redirect": "/"})
 
 
 @router.get("/api/datasets/{dataset_id}/status")

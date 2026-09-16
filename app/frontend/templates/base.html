@@ -1,55 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>{% block title %}Personal Pipeline App{% endblock %}</title>
 
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" />
     <script src="/static/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/htmx.min.js"></script>
-</head>
+  </head>
 
-<body>
-
-<div class="d-flex min-vh-100">
-
-    <!-- Sidebar -->
-    <aside class="border-end p-3" style="width: 240px;">
-
-        <h5 class="mb-4">
-            Pipeline App
-        </h5>
+  <body>
+    <div class="d-flex min-vh-100">
+      <!-- Sidebar -->
+      <aside class="border-end p-3" style="width: 240px">
+        <h5 class="mb-4">Pipeline App</h5>
 
         <nav class="nav flex-column">
+          <a href="/" class="nav-link"> Bộ dữ liệu </a>
 
-            <a href="/" class="nav-link">
-                Home
-            </a>
+          {% if selected_dataset_name %}
+          <p class="text-muted">{{ selected_dataset_name }}</p>
+          <a href="/filter" class="nav-link"> Lọc dữ liệu </a>
 
-            <a href="/pipeline" class="nav-link">
-                Pipeline
-            </a>
-
-            <a href="/graph" class="nav-link">
-                Graph
-            </a>
-
+          <a href="/graph" class="nav-link"> Xử lý dữ liệu </a>
+          <a href="/graph" class="nav-link"> Giao diện đồ thị </a>
+          {% else %}
+          <p class="text-muted">Chưa chọn tập dữ liệu</p>
+          {% endif %}
         </nav>
+      </aside>
 
-    </aside>
-
-
-    <!-- Page content -->
-    <main class="flex-grow-1 p-4">
-
-        {% block content %}
-        {% endblock %}
-
-    </main>
-
-</div>
-
-</body>
+      <!-- Page content -->
+      <main class="flex-grow-1 p-4">{% block content %} {% endblock %}</main>
+    </div>
+  </body>
 </html>

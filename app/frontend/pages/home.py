@@ -14,6 +14,7 @@ template = Jinja2Templates(directory="app/frontend/templates")
 
 @router.get("/")
 def home(request: Request):
+    selected_data_id = request.session.get("data_id")
     datasets = [
         {
             "id": meta.id,
@@ -30,9 +31,14 @@ def home(request: Request):
         }
         for meta in list_datasets()
     ]
+    selected_dataset_name = request.session.get("data_name")
 
     return template.TemplateResponse(
         request=request,
         name="index.html",
-        context={"datasets": datasets},
+        context={
+            "datasets": datasets,
+            "selected_data_id": selected_data_id,
+            "selected_dataset_name": selected_dataset_name,
+        },
     )
