@@ -8,20 +8,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.constants.cons import (
+    STATUS_FAILED,
+    STATUS_INGESTING,
+    STATUS_LABELS,
+    STATUS_SUCCESS,
     STEP_NONE,
     STEP_CRAWL,
     STEP_CHUNK,
 )
 
-APP_DIR = Path(__file__).resolve().parent.parent
-DATASETS_DIR = APP_DIR / "datasets"
+DATASETS_DIR = Path(__file__).resolve().parent.parent / "datasets"
 
-DATASET_STATUS = {
-    0: "Mới tạo",
-    1: "Sẵn sàng",
-    2: "Đang xử lý",
-    -1: "Lỗi",
-}
 STEP_PROGRESS = {
     STEP_NONE: 0,
     STEP_CRAWL: 50,
@@ -36,7 +33,7 @@ class DatasetMeta:
     name: str
     created_at: str
     source_url_count: int = 0
-    status: int = 0
+    status: str = STATUS_SUCCESS
     step: int = STEP_NONE
     error: str = ""
     stage_counts: dict[str, int] = field(default_factory=dict)
@@ -45,13 +42,21 @@ class DatasetMeta:
 
 
 def get_progress(meta: DatasetMeta) -> int:
-    if meta.status == 1:
+    if get_status_label(meta) == "Sẵn sàng":
         return 100
     return STEP_PROGRESS.get(meta.step, 0)
 
 
 def get_status_label(meta: DatasetMeta) -> str:
-    return DATASET_STATUS.get(meta.status, "Không xác định")
+    if meta.step == STEP_NONE:
+        return "Mới tạo"
+    if meta.step <= STEP_CHUNK and meta.status == STATUS_FAILED:
+        return "Lỗi dữ liệu"
+    if (meta.step == STEP_CHUNK and meta.status == STATUS_SUCCESS) or meta.step > STEP_CHUNK:
+        return "Sẵn sàng"
+    if meta.step <= STEP_CHUNK and meta.status == STATUS_INGESTING:
+        return "Đang xử lý"
+    return STATUS_LABELS.get(meta.status, "Không xác định")
 
 
 def _slugify(name: str) -> str:
@@ -107,14 +112,7 @@ def load_meta(dataset_id: str) -> DatasetMeta | None:
     if not path.exists():
         return None
     data = json.loads(path.read_text(encoding="utf-8"))
-    legacy_status = {
-        "new": 0,
-        "success": 1,
-        "failed": -1,
-        "ingesting": 2,
-    }
-    if isinstance(data.get("status"), str):
-        data["status"] = legacy_status.get(data["status"], 0)
+    data.setdefault("status", STATUS_SUCCESS)
     data.setdefault("step", STEP_NONE)
     return DatasetMeta(**data)
 

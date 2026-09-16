@@ -5,6 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from configs.config import CACHE_DIR, CHUNK_FILTER_THRESHOLD
+from src.chunking.chunk_runner import load_chunks
 from src.data_models.chunk import Chunk
 from src.filtering.knowledge_base_store import load_knowledge_base
 from src.filtering.scorer import Scorer
@@ -37,6 +38,13 @@ class ChunkFilterRunner:
         filtered_path = chunks_dir / "chunks_filtered.jsonl"
         rejected_path = chunks_dir / "chunks_rejected.jsonl"
 
+        processed_chunks = {
+            chunk.chunk_id
+            for filename in ("chunks_filtered.jsonl", "chunks_rejected.jsonl")
+            for chunk in load_chunks(output_path, filename=filename)
+        }
+        remaining_chunks = [chunk for chunk in chunks if chunk.chunk_id not in processed_chunks]
+
         knowledge_base = load_knowledge_base(output_path)
         scorer = Scorer(
             emb.encode_texts(knowledge_base["lexicon"]),
@@ -44,13 +52,13 @@ class ChunkFilterRunner:
         )
         threshold = knowledge_base.get("threshold", CHUNK_FILTER_THRESHOLD)
 
-        all_kept: list[Chunk] = []
+        all_kept = load_chunks(output_path, filename="chunks_filtered.jsonl")
 
         with (
-            open(filtered_path, "w", encoding="utf-8") as filtered_file,
-            open(rejected_path, "w", encoding="utf-8") as rejected_file,
+            open(filtered_path, "a", encoding="utf-8") as filtered_file,
+            open(rejected_path, "a", encoding="utf-8") as rejected_file,
         ):
-            for batch in itertools.batched(chunks, self.batch_size):
+            for batch in itertools.batched(remaining_chunks, self.batch_size):
                 try:
                     scores = scorer.score([chunk.text for chunk in batch])
                 except Exception as error:

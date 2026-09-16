@@ -1,4 +1,137 @@
-{% extends "base.html" %} {% block title %} Lọc dữ liệu {% endblock %} {% block
-content %} 
-    <h1>Khai phá dữ liệu nhân quả</h1>
+{% extends "base.html" %}
+
+{% block title %}Lọc dữ liệu{% endblock %}
+
+{% block content %}
+    <div class="container-lg px-0">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-5">
+            <div>
+                <div class="text-uppercase text-secondary small fw-semibold mb-2">Pipeline / Bộ lọc</div>
+                <h1 class="display-6 fw-semibold mb-2">Lọc dữ liệu</h1>
+                <p class="text-secondary mb-0">Thiết lập các tiêu chí để chọn chunk liên quan.</p>
+            </div>
+            <div class="text-secondary small">Cấu hình bộ lọc</div>
+        </div>
+
+        <section class="bg-light rounded-3 px-4 py-3 mb-4">
+            <div class="text-uppercase text-secondary small fw-semibold mb-1">Tập dữ liệu</div>
+            <h2 class="h5 mb-0">{{ selected_dataset_name or "Chưa chọn tập dữ liệu" }}</h2>
+        </section>
+
+        <form id="filter-config-form" action="/api/datasets/{{ selected_data_id }}/filter-config" method="post">
+            <div class="card border rounded-3 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-4">
+                        <div>
+                            <h2 class="h5 fw-semibold mb-1">Cấu hình bộ lọc</h2>
+                            <p class="text-secondary small mb-0">Các thiết lập được dùng cho pipeline lọc dữ liệu.</p>
+                        </div>
+                        <span class="text-secondary small">Chưa lưu</span>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="accordion" id="lexicon-field">
+                                <div class="accordion-item border rounded-3">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button rounded-3 fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#lexicon-panel" aria-expanded="true" aria-controls="lexicon-panel">
+                                            Lexicon
+                                        </button>
+                                    </h2>
+                                    <div id="lexicon-panel" class="accordion-collapse collapse show">
+                                        <div class="accordion-body pt-2">
+                                            <label for="lexicon" class="form-text d-block mb-2">Mỗi từ khóa nằm trên một dòng.</label>
+                                            <textarea id="lexicon" name="lexicon" class="form-control border-0 bg-light" rows="7" aria-label="Danh sách lexicon">{{ lexicon | join('\n') }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="accordion" id="query-field">
+                                <div class="accordion-item border rounded-3">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button rounded-3 fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#query-panel" aria-expanded="true" aria-controls="query-panel">
+                                            Query
+                                        </button>
+                                    </h2>
+                                    <div id="query-panel" class="accordion-collapse collapse show">
+                                        <div class="accordion-body pt-2">
+                                            <label for="queries" class="form-text d-block mb-2">Mỗi câu hỏi mẫu nằm trên một dòng.</label>
+                                            <textarea id="queries" name="query" class="form-control border-0 bg-light" rows="7" aria-label="Danh sách query">{{ query | join('\n') }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="border rounded-3 p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-4">
+                                    <div>
+                                        <h3 class="h6 fw-semibold mb-1">Ngưỡng lọc</h3>
+                                        <p class="text-secondary small mb-0">Điểm liên quan tối thiểu.</p>
+                                    </div>
+                                    <output id="threshold-value" class="fw-semibold" for="threshold">{{ "%.2f"|format(threshold) }}</output>
+                                </div>
+                                <input id="threshold" name="threshold" type="range" class="form-range" min="0" max="1" step="0.01" value="{{ threshold }}" aria-label="Ngưỡng lọc"/>
+                                <div class="d-flex justify-content-between text-muted small"><span>0.00</span><span>1.00</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-end gap-2 border-top mt-4 pt-4">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            hx-post="/api/datasets/{{ selected_data_id }}/filter-config/default"
+                            hx-swap="none"
+                        >
+                            Đặt mặc định
+                        </button>
+                        <button type="submit" class="btn btn-dark px-4">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="card border rounded-3">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+                    <div>
+                        <div class="text-uppercase text-secondary small fw-semibold mb-2">Pipeline</div>
+                        <h2 class="h5 fw-semibold mb-1">Lọc dữ liệu</h2>
+                        <p class="text-secondary small mb-0">Chạy pipeline với cấu hình đã lưu ở trên.</p>
+                    </div>
+                    <button
+                        id="filter-run-button"
+                        type="button"
+                        class="btn btn-dark px-4"
+                        hx-post="/api/datasets/{{ selected_data_id }}/filter"
+                        hx-swap="none"
+                        hx-indicator="#filter-loading"
+                        hx-disabled-elt="this"
+                        {% if filter_status.step == filter_step_filter and filter_status.status == filter_status_ingesting %}
+                        disabled
+                        aria-disabled="true"
+                        {% endif %}
+                    >
+                        <span class="filter-button-label">Lọc dữ liệu</span>
+                        <span id="filter-loading" class="htmx-indicator spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>
+                    </button>
+                </div>
+                {% include "filter_progress.html" %}
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const thresholdInput = document.getElementById("threshold");
+        const thresholdValue = document.getElementById("threshold-value");
+
+        thresholdInput.addEventListener("input", () => {
+            thresholdValue.textContent = Number(thresholdInput.value).toFixed(2);
+        });
+    </script>
 {% endblock %}

@@ -4,10 +4,12 @@ from fastapi.templating import Jinja2Templates
 from charset_normalizer import from_bytes
 
 from app.constants.cons import (
+    STATUS_FAILED,
+    STATUS_INGESTING,
+    STATUS_SUCCESS,
     STEP_CHUNK,
     STEP_CRAWL,
     STEP_LABELS,
-    STEP_NONE,
 )
 
 from app.services.dataset_store import (
@@ -72,10 +74,9 @@ def _crawl_dataset(dataset_id: str) -> None:
         save_meta(meta)
         chunks = pipeline.chunk_data(documents, output_path=output_dir)
         meta.stage_counts["chunk"] = len(chunks)
-        meta.status = 1
-        meta.step = STEP_NONE
+        meta.status = STATUS_SUCCESS
     except Exception as error:
-        meta.status = -1
+        meta.status = STATUS_FAILED
         meta.error = str(error)
 
     save_meta(meta)
@@ -145,14 +146,14 @@ def crawl_dataset(
     if meta is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy tập dữ liệu.")
 
-    if meta.status == 2:
+    if meta.status == STATUS_INGESTING:
         raise HTTPException(status_code=409, detail="Tập dữ liệu đang được xử lý.")
 
     urls = load_source_urls(dataset_id)
     if not urls:
         raise HTTPException(status_code=400, detail="Tập dữ liệu chưa có URL nguồn.")
 
-    meta.status = 2
+    meta.status = STATUS_INGESTING
     meta.step = STEP_CRAWL
     meta.error = ""
     meta.stage_counts = {}
@@ -168,7 +169,6 @@ def crawl_dataset(
 @router.post("/api/datasets")
 async def create_dataset(
     data_name: str = Form(...),
-    description: str = Form(""),
     data_file: UploadFile = File(...),
 ):
     name = data_name.strip()

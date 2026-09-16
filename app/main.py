@@ -7,6 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.frontend.pages.filter_page import router as filter_page
 from app.frontend.pages.home import router as home_router
 from app.backend.api.dataset import router as dataset_router
+from app.backend.api.filter_config import router as filter_config_router
 
 
 app = FastAPI(
@@ -27,3 +28,4 @@ app.mount(
 app.include_router(filter_page)
 app.include_router(home_router)
 app.include_router(dataset_router)
+app.include_router(filter_config_router)
