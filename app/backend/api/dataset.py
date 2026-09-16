@@ -8,10 +8,6 @@ from app.constants.cons import (
     STEP_CRAWL,
     STEP_LABELS,
     STEP_NONE,
-    STATUS_FAILED,
-    STATUS_INGESTING,
-    STATUS_LABELS,
-    STATUS_SUCCESS,
 )
 
 from app.services.dataset_store import (
@@ -22,6 +18,7 @@ from app.services.dataset_store import (
     load_meta,
     list_datasets,
     get_progress,
+    get_status_label,
     save_meta,
 )
 
@@ -34,7 +31,7 @@ def _dataset_response(meta):
         "id": meta.id,
         "name": meta.name,
         "status": meta.status,
-        "status_label": STATUS_LABELS.get(meta.status, meta.status),
+        "status_label": get_status_label(meta),
         "step": meta.step,
         "step_label": STEP_LABELS.get(meta.step, ""),
         "progress": get_progress(meta),
@@ -46,7 +43,7 @@ def _dataset_response(meta):
 def _progress_context(meta):
     return {
         **meta.__dict__,
-        "status_label": STATUS_LABELS.get(meta.status, meta.status),
+        "status_label": get_status_label(meta),
         "step_label": STEP_LABELS.get(meta.step, ""),
         "progress": get_progress(meta),
     }
@@ -75,10 +72,10 @@ def _crawl_dataset(dataset_id: str) -> None:
         save_meta(meta)
         chunks = pipeline.chunk_data(documents, output_path=output_dir)
         meta.stage_counts["chunk"] = len(chunks)
-        meta.status = STATUS_SUCCESS
+        meta.status = 1
         meta.step = STEP_NONE
     except Exception as error:
-        meta.status = STATUS_FAILED
+        meta.status = -1
         meta.error = str(error)
 
     save_meta(meta)
@@ -98,7 +95,7 @@ def get_datasets():
             "id": meta.id,
             "name": meta.name,
             "status": meta.status,
-            "status_label": STATUS_LABELS.get(meta.status, meta.status),
+            "status_label": get_status_label(meta),
             "step": meta.step,
             "step_label": STEP_LABELS.get(meta.step, ""),
             "created_at": meta.created_at,
@@ -138,14 +135,14 @@ def crawl_dataset(
     if meta is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy tập dữ liệu.")
 
-    if meta.status == STATUS_INGESTING:
+    if meta.status == 2:
         raise HTTPException(status_code=409, detail="Tập dữ liệu đang được xử lý.")
 
     urls = load_source_urls(dataset_id)
     if not urls:
         raise HTTPException(status_code=400, detail="Tập dữ liệu chưa có URL nguồn.")
 
-    meta.status = STATUS_INGESTING
+    meta.status = 2
     meta.step = STEP_CRAWL
     meta.error = ""
     meta.stage_counts = {}

@@ -8,6 +8,7 @@
   <table class="table">
     <thead>
       <tr>
+        <th scope="col">Chọn</th>
         <th scope="col">Tên</th>
         <th scope="col">Trạng thái</th>
         <th scope="col">Ngày tạo</th>
@@ -17,6 +18,13 @@
     <tbody>
       {% for dataset in datasets %}
       <tr>
+        <td>
+          <input
+            type="radio"
+            name="selected_datasets"
+            value="{{ dataset.id }}"
+          />
+        </td>
         <td>{{ dataset.name }}</td>
         <td id="dataset-status-{{ dataset.id }}">{{ dataset.status_label }}</td>
         <td>{{ dataset.created_at[:19].replace("T", " ") }}</td>

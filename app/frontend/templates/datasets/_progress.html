@@ -1,29 +1,16 @@
-<tr
-  id="dataset-progress-{{ dataset.id }}"
-  {% if dataset.status == "ingesting" %}
-  hx-get="/datasets/{{ dataset.id }}/progress"
-  hx-trigger="every 2s"
-  hx-swap="outerHTML"
-  {% else %}
-  hidden
-  {% endif %}
->
+<tr id="dataset-progress-{{ dataset.id }}" {% if dataset.status==2 %} hx-get="/datasets/{{ dataset.id }}/progress"
+  hx-trigger="every 2s" hx-swap="outerHTML" {% else %} hidden {% endif %}>
   <td colspan="4" class="text-center">
-    
     <div class="progress">
       <div
-        class="progress-bar{% if dataset.status == "failed" %} bg-danger{% endif %}{% if dataset.status == "ingesting" %} progress-bar-striped progress-bar-animated{% endif %}"
-        role="progressbar"
-        style="width: {{ dataset.progress }}%"
-        aria-valuenow="{{ dataset.progress }}"
-        aria-valuemin="0"
-        aria-valuemax="100"
-      >
+        class="progress-bar{% if dataset.status == -1 %} bg-danger{% endif %}{% if dataset.status == 2 %} progress-bar-striped progress-bar-animated{% endif %}"
+        role="progressbar" style="width: {{ dataset.progress }}%" aria-valuenow="{{ dataset.progress }}"
+        aria-valuemin="0" aria-valuemax="100">
         {{ dataset.progress }}%
       </div>
     </div>
     <div>{{ dataset.step_label }}</div>
-    
+
     {% if dataset.error %}
     <div class="text-danger">{{ dataset.error }}</div>
     {% endif %}

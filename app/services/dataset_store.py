@@ -8,15 +8,27 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.constants.cons import (
-    STATUS_NEW,
-    STATUS_SUCCESS,
     STEP_NONE,
-    STEP_PROGRESS,
-    URLS_FILENAME,
+    STEP_CRAWL,
+    STEP_CHUNK,
 )
 
 APP_DIR = Path(__file__).resolve().parent.parent
 DATASETS_DIR = APP_DIR / "datasets"
+
+DATASET_STATUS = {
+    0: "Mới tạo",
+    1: "Sẵn sàng",
+    2: "Đang xử lý",
+    -1: "Lỗi",
+}
+STEP_PROGRESS = {
+    STEP_NONE: 0,
+    STEP_CRAWL: 50,
+    STEP_CHUNK: 75,
+}
+
+URLS_FILENAME = "urls.txt"
 
 @dataclass
 class DatasetMeta:
@@ -24,7 +36,7 @@ class DatasetMeta:
     name: str
     created_at: str
     source_url_count: int = 0
-    status: str = STATUS_NEW
+    status: int = 0
     step: int = STEP_NONE
     error: str = ""
     stage_counts: dict[str, int] = field(default_factory=dict)
@@ -33,9 +45,13 @@ class DatasetMeta:
 
 
 def get_progress(meta: DatasetMeta) -> int:
-    if meta.status == STATUS_SUCCESS:
+    if meta.status == 1:
         return 100
     return STEP_PROGRESS.get(meta.step, 0)
+
+
+def get_status_label(meta: DatasetMeta) -> str:
+    return DATASET_STATUS.get(meta.status, "Không xác định")
 
 
 def _slugify(name: str) -> str:
@@ -90,7 +106,17 @@ def load_meta(dataset_id: str) -> DatasetMeta | None:
     path = _meta_path(dataset_id)
     if not path.exists():
         return None
-    return DatasetMeta(**json.loads(path.read_text(encoding="utf-8")))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    legacy_status = {
+        "new": 0,
+        "success": 1,
+        "failed": -1,
+        "ingesting": 2,
+    }
+    if isinstance(data.get("status"), str):
+        data["status"] = legacy_status.get(data["status"], 0)
+    data.setdefault("step", STEP_NONE)
+    return DatasetMeta(**data)
 
 
 def list_datasets() -> list[DatasetMeta]:

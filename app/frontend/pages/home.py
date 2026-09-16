@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
 
-from app.constants.cons import STEP_LABELS, STATUS_LABELS
+from app.constants.cons import STEP_LABELS
 from app.services.dataset_store import (
     get_progress,
+    get_status_label,
     list_datasets,
 )
 
@@ -18,7 +19,7 @@ def home(request: Request):
             "id": meta.id,
             "name": meta.name,
             "status": meta.status,
-            "status_label": STATUS_LABELS.get(meta.status, meta.status),
+            "status_label": get_status_label(meta),
             "step": meta.step,
             "step_label": STEP_LABELS.get(meta.step, ""),
             "stage_counts": meta.stage_counts,
