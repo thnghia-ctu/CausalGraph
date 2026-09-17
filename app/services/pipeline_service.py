@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src.causal_detection.causal_sentence_runner import load_causal_sentences
 from src.chunking.chunk_runner import load_chunks
+from src.extraction.concept_state_runner import load_concept_states
 from src.extraction.spo_runner import load_spo_records
 from src.pipeline import Pipeline
 from src.simplification.simplifier_runner import load_simplified_sentences
@@ -147,27 +148,60 @@ def get_progress(dataset_id: str) -> dict:
     }
 
     if meta.step == STEP_CAUSAL_DETECTION:
+        filtered_chunks = load_chunks(
+            dataset_dir,
+            filename="chunks_filtered.jsonl",
+        )
         causal_sentences = load_causal_sentences(dataset_dir)
 
-        causal_count = sum(
-            sentence.weak_label == "causal"
+        causal_count = len({
+            sentence.chunk_id
             for sentence in causal_sentences
-        )
+            if sentence.chunk_id is not None
+        })
 
         result["progress"] = {
             "current": causal_count,
-            "goal": 0,
+            "goal": len(filtered_chunks),
         }
 
     if meta.step == STEP_SIMPLIFICATION:
+        causal_sentences = load_causal_sentences(dataset_dir)
         simplified_sentences = load_simplified_sentences(dataset_dir)
-        sentence_count = sum(
-            sentence.simple_index == 0
+        simplified_sources = {
+            (sentence.chunk_id, sentence.sentence_index)
             for sentence in simplified_sentences
-        )
+        }
         result["progress"] = {
-            "current": sentence_count,
-            "goal": meta.stage_counts["causal_detect"],
+            "current": len(simplified_sources),
+            "goal": sum(
+                sentence.weak_label == "causal"
+                for sentence in causal_sentences
+            ),
+        }
+
+    if meta.step == STEP_SPO:
+        simplified_sentences = load_simplified_sentences(dataset_dir)
+        spo_records = load_spo_records(dataset_dir)
+        spo_sources = {
+            (record.chunk_id, record.sentence_index, record.simple_index)
+            for record in spo_records
+        }
+        result["progress"] = {
+            "current": len(spo_sources),
+            "goal": len(simplified_sentences),
+        }
+
+    if meta.step == STEP_CONCEPT_STATE:
+        spo_records = load_spo_records(dataset_dir)
+        concept_states = load_concept_states(dataset_dir)
+        concept_state_sources = {
+            (record.chunk_id, record.sentence_index, record.simple_index)
+            for record in concept_states
+        }
+        result["progress"] = {
+            "current": len(concept_state_sources),
+            "goal": len(spo_records),
         }
 
     return result

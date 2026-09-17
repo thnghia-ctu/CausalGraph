@@ -13,7 +13,6 @@ CLUSTER_COLUMNS = ("concept_candidate", "count", "cluster")
 CONCEPT_COLUMNS = ("concept_id", "representative_label", "members")
 
 MIN_SENTENCE_COUNT = 2
-MAX_SAMPLE_RELATIONS = 20
 RELATION_DETAIL_COLUMNS = [
     "subject_text", "predicate", "object_text", "original_sentence", "simple_sentence", "url",
     "source_direction", "target_direction",
@@ -133,7 +132,6 @@ def build_graph_from_relations(
     concepts: pd.DataFrame,
     *,
     min_sentence_count: int = MIN_SENTENCE_COUNT,
-    max_sample_relations: int = MAX_SAMPLE_RELATIONS,
 ) -> nx.DiGraph:
     labels = dict(zip(concepts["concept_id"], concepts["representative_label"]))
 
@@ -148,7 +146,7 @@ def build_graph_from_relations(
     graph = nx.DiGraph()
     directions: dict[str, set[int]] = {}
     for source_id, target_id, relation_count, sentence_count in edges.itertuples(index=False):
-        rows = grouped.get_group((source_id, target_id)).head(max_sample_relations)
+        rows = grouped.get_group((source_id, target_id))
         details = rows[RELATION_DETAIL_COLUMNS].to_dict("records")
         graph.add_edge(
             labels.get(source_id, source_id),

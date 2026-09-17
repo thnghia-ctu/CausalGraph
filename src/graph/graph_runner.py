@@ -33,6 +33,7 @@ RELATION_COLUMNS = [
     "url",
     "doc_id",
     "chunk_id",
+    "sentence_index",
 ]
 
 
@@ -76,6 +77,7 @@ class GraphRunner:
                 "url": record.url,
                 "doc_id": record.doc_id,
                 "chunk_id": record.chunk_id,
+                "sentence_index": record.sentence_index,
             }
             for record in spo_records
         ]
