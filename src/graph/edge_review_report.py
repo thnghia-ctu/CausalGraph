@@ -85,8 +85,12 @@ def build_edge_rows(
     labels = dict(zip(concepts["concept_id"], concepts["representative_label"]))
 
     relations = relations.dropna(subset=["source_concept_id", "target_concept_id"])
+    relations = relations.copy()
+    relations["_source_sentence_key"] = list(
+        zip(relations["doc_id"], relations["chunk_id"], relations["sentence_index"])
+    )
     grouped = relations.groupby(["source_concept_id", "target_concept_id"])
-    sentence_counts = grouped["simple_sentence"].nunique()
+    sentence_counts = grouped["_source_sentence_key"].nunique()
     edge_keys = sentence_counts[sentence_counts >= min_sentence_count].sort_values(
         ascending=False,
     ).index

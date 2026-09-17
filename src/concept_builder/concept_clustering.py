@@ -136,10 +136,14 @@ def build_graph_from_relations(
     labels = dict(zip(concepts["concept_id"], concepts["representative_label"]))
 
     relations = relations_with_ids.dropna(subset=["source_concept_id", "target_concept_id"])
+    relations = relations.copy()
+    relations["_source_sentence_key"] = list(
+        zip(relations["doc_id"], relations["chunk_id"], relations["sentence_index"])
+    )
     grouped = relations.groupby(["source_concept_id", "target_concept_id"])
     edge_stats = grouped.agg(
         relation_count=("simple_sentence", "size"),
-        sentence_count=("simple_sentence", "nunique"),
+        sentence_count=("_source_sentence_key", "nunique"),
     ).reset_index()
     edges = edge_stats[edge_stats["sentence_count"] >= min_sentence_count]
 

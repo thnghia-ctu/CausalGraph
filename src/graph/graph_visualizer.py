@@ -63,7 +63,7 @@ def _add_edge(net, source, target, data):
     relations = data.get("relations", [])
     net.add_edge(
         source, target,
-        title=str(len(relations)),
+        title=str(data.get("score", 0)),
         relations=relations,
     )
 
