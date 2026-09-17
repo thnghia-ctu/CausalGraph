@@ -13,28 +13,8 @@
             <span class="text-secondary small">Bước 2</span>
         </div>
 
-        {% if not dataset %}
-            <div class="alert alert-warning border-0 rounded-3" role="alert">
-                <div class="fw-semibold mb-1">Chưa chọn tập dữ liệu</div>
-                <div class="small">Hãy quay lại danh sách để chọn một tập dữ liệu trước khi xử lý.</div>
-                <a href="/" class="btn btn-sm btn-warning mt-3">Quay lại bộ dữ liệu</a>
-            </div>
-        {% else %}
-            <section class="bg-light rounded-3 px-4 py-3 mb-4">
-                <div class="text-uppercase text-secondary small fw-semibold mb-1">Tập dữ liệu</div>
-                <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2">
-                    <h2 class="h5 mb-0">{{ dataset.name }}</h2>
-                    <span class="text-secondary small">ID: {{ dataset.id }}</span>
-                </div>
-            </section>
-
-            {% if not dataset.stage_counts.get("filter") and not dataset.stage_counts.get("chunk") %}
-                <div class="alert alert-warning border-0 rounded-3 mb-4" role="alert">
-                    <div class="fw-semibold mb-1">Chưa có dữ liệu đầu vào</div>
-                    <div class="small">Hãy hoàn thành bước thu thập, phân đoạn và lọc dữ liệu trước.</div>
-                    <a href="/filter" class="btn btn-sm btn-warning mt-3">Sang trang lọc dữ liệu</a>
-                </div>
-            {% endif %}
+        
+        {% if dataset %}            
 
             {% include "_pipeline_progress.html" %}
 

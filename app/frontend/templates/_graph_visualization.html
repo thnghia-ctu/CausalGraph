@@ -4,7 +4,7 @@
             <div>
                 <div class="text-uppercase text-secondary small fw-semibold mb-2">Không gian concept</div>
                 <h2 class="h5 fw-semibold mb-1">Đồ thị quan hệ</h2>
-                <p class="text-secondary small mb-0">Bản xem trước sẽ được thay bằng đồ thị tương tác khi nối backend.</p>
+                <p class="text-secondary small mb-0">Đồ thị được dựng từ dữ liệu concept/state của tập dữ liệu.</p>
             </div>
             <div class="d-flex gap-3 text-secondary small">
                 <span><strong class="text-dark">{{ graph_preview.nodes }}</strong> concept</span>
@@ -18,7 +18,14 @@
                 <span>Lọc từ {{ min_edge_count }} câu nguồn</span>
             </div>
 
-            <div class="position-relative overflow-hidden bg-white border rounded-3" style="height: 440px;">
+            {% if graph_available %}
+                <iframe src="/graph/render" title="Đồ thị concept" class="w-100 border rounded-3 bg-white" style="height: 520px;"></iframe>
+            {% else %}
+                <div class="d-flex align-items-center justify-content-center border rounded-3 bg-white text-secondary" style="height: 440px;">
+                    Chưa có dữ liệu concept/state để dựng đồ thị.
+                </div>
+            {% endif %}
+            <!--
                 <svg class="position-absolute top-0 start-0 w-100 h-100" viewBox="0 0 900 440" role="img" aria-label="Bản xem trước đồ thị concept">
                     <g stroke="#adb5bd" stroke-width="2" opacity=".72">
                         <line x1="170" y1="128" x2="390" y2="212"/><line x1="170" y1="128" x2="300" y2="350"/>
@@ -38,7 +45,7 @@
                 <div class="position-absolute bottom-0 start-0 p-3 text-secondary small bg-white bg-opacity-75 rounded-end">
                     Bản xem trước giao diện
                 </div>
-            </div>
+            -->
         </div>
 
         <div class="d-flex flex-wrap justify-content-between gap-3 mt-3 text-secondary small">

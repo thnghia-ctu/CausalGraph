@@ -13,11 +13,6 @@
             <div class="text-secondary small">Cấu hình bộ lọc</div>
         </div>
 
-        <section class="bg-light rounded-3 px-4 py-3 mb-4">
-            <div class="text-uppercase text-secondary small fw-semibold mb-1">Tập dữ liệu</div>
-            <h2 class="h5 mb-0">{{ selected_dataset_name or "Chưa chọn tập dữ liệu" }}</h2>
-        </section>
-
         <form id="filter-config-form" action="/api/datasets/{{ selected_data_id }}/filter-config" method="post">
             <div class="card border rounded-3 mb-4">
                 <div class="card-body p-4">
