@@ -95,7 +95,7 @@ def get_status(dataset_id: str, request: Request):
 	if request.headers.get("HX-Request") == "true":
 		return templates.TemplateResponse(
 			request=request,
-			name="filter_progress.html",
+			name="_filter_progress.html",
 			context={
 				"filter_status": status,
 				"filter_step_filter": STEP_FILTER,

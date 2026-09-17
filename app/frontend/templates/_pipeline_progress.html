@@ -1,0 +1,56 @@
+<section
+    class="card border rounded-3 mb-4"
+    {% if 4 <= dataset.step <= 7 and dataset.status == "ingesting" %}
+    hx-get="/api/pipeline/{{ dataset.id }}/status"
+    hx-trigger="every 2s"
+    hx-swap="innerHTML"
+    {% endif %}
+>
+    <div class="card-body p-4">
+        {% if dataset.error %}
+            <div class="alert alert-danger mb-4" role="alert">
+                <div class="fw-semibold mb-1">Pipeline gặp lỗi</div>
+                <div class="small text-break">{{ dataset.error }}</div>
+            </div>
+        {% endif %}
+
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+                <h2 class="h5 fw-semibold mb-1">Các bước xử lý</h2>
+                <p class="text-secondary small mb-0">Mỗi bước sẽ tạo dữ liệu đầu vào cho bước tiếp theo.</p>
+            </div>
+            <span class="badge rounded-pill text-bg-light border">{{ step_label or "Sẵn sàng" }}</span>
+        </div>
+
+        <div class="list-group list-group-flush">
+            {% for stage in stages %}
+                <div class="list-group-item px-0 py-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="pt-1">
+                            {% if stage.count is not none %}
+                                <span class="badge rounded-circle text-bg-success">&#10003;</span>
+                            {% elif stage.active %}
+                                <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+                            {% else %}
+                                <span class="badge rounded-circle text-bg-light border text-secondary">{{ loop.index }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex flex-wrap justify-content-between gap-2">
+                                <h3 class="h6 fw-semibold mb-1">{{ stage.label }}</h3>
+                                {% if stage.count is not none %}
+                                    <span class="text-secondary small">{{ stage.count }} kết quả</span>
+                                {% elif stage.active %}
+                                    <span class="text-primary small">{{ progress.progress.current }} / {{ progress.progress.goal }}</span>
+                                {% else %}
+                                    <span class="text-secondary small">Chờ xử lý</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-secondary small mb-0">{{ stage.description }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

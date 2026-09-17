@@ -17,13 +17,11 @@ from src.simplification.simplifier_runner import load_simplified_sentences
 
 CRAWL_STAGE = ("crawl", "Thu thập văn bản")
 PROCESS_STAGES = (
-    ("causal_detect", "Nhận diện câu nhân quả"),
-    ("simplify", "Tách câu đơn"),
-    ("spo", "Trích xuất subject-predicate-object"),
-    ("concept_state", "Phân rã concept/state"),
+    ("causal_detect", "Nhận diện câu nhân quả", "Tìm các câu có quan hệ nhân quả trong chunk đã lọc."),
+    ("simplify", "Tách câu đơn", "Chuẩn hóa và tách câu phức thành các câu đơn."),
+    ("spo", "Trích xuất SPO", "Xác định subject, predicate và object trong câu."),
+    ("concept_state", "Phân rã concept/state", "Tách concept và trạng thái để dựng dữ liệu đồ thị."),
 )
-STAGES = (CRAWL_STAGE, *PROCESS_STAGES)
-STAGE_LABELS = dict(STAGES)
 
 ProgressCallback = Callable[[str, int], None]
 
