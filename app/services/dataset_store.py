@@ -47,6 +47,46 @@ def get_progress(meta: DatasetMeta) -> int:
     return STEP_PROGRESS.get(meta.step, 0)
 
 
+def get_stage_progress(meta: DatasetMeta) -> dict[str, int | str]:
+    """Return the active crawl/chunk progress without changing other callers."""
+    dataset_path = dataset_dir(meta.id)
+    current = 0
+    goal = 0
+    label = ""
+
+    if meta.step == STEP_CRAWL:
+        documents_path = dataset_path / "raw" / "documents.jsonl"
+        current = sum(1 for line in documents_path.open(encoding="utf-8") if line.strip()) if documents_path.exists() else 0
+        goal = meta.source_url_count
+        label = "Thu thập dữ liệu"
+    elif meta.step == STEP_CHUNK:
+        documents_path = dataset_path / "raw" / "documents.jsonl"
+        chunks_path = dataset_path / "chunks" / "chunks.jsonl"
+        document_ids = set()
+        if documents_path.exists():
+            for line in documents_path.open(encoding="utf-8"):
+                if line.strip():
+                    document_ids.add(json.loads(line)["doc_id"])
+
+        chunked_document_ids = set()
+        if chunks_path.exists():
+            for line in chunks_path.open(encoding="utf-8"):
+                if line.strip():
+                    chunked_document_ids.add(json.loads(line)["ref"]["doc"]["doc_id"])
+
+        current = len(chunked_document_ids)
+        goal = len(document_ids)
+        label = "Phân đoạn dữ liệu"
+
+    percentage = round(current / goal * 100) if goal else 0
+    return {
+        "current": current,
+        "goal": goal,
+        "percentage": min(percentage, 100),
+        "label": label,
+    }
+
+
 def get_status_label(meta: DatasetMeta) -> str:
     if meta.step == STEP_NONE:
         return "Mới tạo"

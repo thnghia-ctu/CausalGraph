@@ -13,15 +13,18 @@
       <div
         class="progress-bar{% if dataset.status == "failed" %} bg-danger{% endif %}{% if dataset.status == "ingesting" %} progress-bar-striped progress-bar-animated{% endif %}"
         role="progressbar"
-        style="width: {{ dataset.progress }}%"
-        aria-valuenow="{{ dataset.progress }}"
+        style="width: {{ dataset.stage_progress.percentage }}%"
+        aria-valuenow="{{ dataset.stage_progress.percentage }}"
         aria-valuemin="0"
         aria-valuemax="100"
       >
-        {{ dataset.progress }}%
+        {{ dataset.stage_progress.percentage }}%
       </div>
     </div>
-    <div>{{ dataset.step_label }}</div>
+    <div>{{ dataset.stage_progress.label }}</div>
+    <div class="text-secondary small">
+      {{ dataset.stage_progress.current }}/{{ dataset.stage_progress.goal }}
+    </div>
 
     {% if dataset.error %}
       <div class="text-danger">{{ dataset.error }}</div>

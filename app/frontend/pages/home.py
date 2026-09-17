@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from app.constants.cons import STEP_LABELS
 from app.services.dataset_store import (
     get_progress,
+    get_stage_progress,
     get_status_label,
     list_datasets,
 )
@@ -26,6 +27,7 @@ def home(request: Request):
             "stage_counts": meta.stage_counts,
             "error": meta.error,
             "progress": get_progress(meta),
+            "stage_progress": get_stage_progress(meta),
             "created_at": meta.created_at,
             "source_url_count": meta.source_url_count,
         }

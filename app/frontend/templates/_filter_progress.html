@@ -10,7 +10,13 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3 class="h6 fw-semibold mb-0">Tiến độ</h3>
         <span class="text-secondary small">
-            {% if filter_status.status == "ingesting" %}Đang xử lý{% elif filter_status.status == "failed" %}Lỗi{% elif filter_status.processed == filter_status.total and filter_status.total > 0 %}Hoàn tất{% else %}Đang chờ{% endif %}
+            {% if filter_status.status == "ingesting" %}
+            Đang xử lý
+            {% elif filter_status.status == "failed" %}
+            Lỗi
+            {% elif filter_status.processed == filter_status.total and filter_status.total > 0 %}
+            Hoàn tất
+            {% else %}Đang chờ{% endif %}
         </span>
     </div>
     <div

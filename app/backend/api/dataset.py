@@ -20,6 +20,7 @@ from app.services.dataset_store import (
     load_meta,
     list_datasets,
     get_progress,
+    get_stage_progress,
     get_status_label,
     save_meta,
 )
@@ -48,6 +49,7 @@ def _progress_context(meta):
         "status_label": get_status_label(meta),
         "step_label": STEP_LABELS.get(meta.step, ""),
         "progress": get_progress(meta),
+        "stage_progress": get_stage_progress(meta),
     }
 
 
