@@ -1,10 +1,12 @@
+from pathlib import Path
+
 import joblib
 import numpy as np
 from sklearn.svm import SVC
 
-from configs.config import CAUSAL_CLASSIFIER_MODEL_PATH
+from configs.config import CAUSAL_CLASSIFIER_HF_REPO_ID, CAUSAL_CLASSIFIER_MODEL_PATH
 from src.utils.embedding import DEFAULT_MODEL_NAME, encode_texts, get_model
-from src.utils.hub import push_file_to_hub
+from src.utils.hub import push_file_to_hub, resolve_hub_file
 
 
 class EmbeddingCausalClassifier:
@@ -38,7 +40,12 @@ class EmbeddingCausalClassifier:
 
     @classmethod
     def load(cls, path=CAUSAL_CLASSIFIER_MODEL_PATH) -> "EmbeddingCausalClassifier":
-        data = joblib.load(path)
+        model_path = resolve_hub_file(
+            CAUSAL_CLASSIFIER_HF_REPO_ID,
+            "causal_classifier.joblib",
+            path,
+        )
+        data = joblib.load(model_path)
         return cls(model_name=data["model_name"], classifier=data["classifier"])
 
     def push_to_hub(self, repo_id: str, path=CAUSAL_CLASSIFIER_MODEL_PATH) -> None:

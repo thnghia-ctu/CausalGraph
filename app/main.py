@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.frontend.pages.filter_page import router as filter_page
+from app.frontend.pages.graph_visualize_page import router as graph_visualize_page
 from app.frontend.pages.ingest_page import router as ingest_page
 from app.frontend.pages.home import router as home_router
 from app.backend.api.dataset import router as dataset_router
@@ -28,6 +29,7 @@ app.mount(
 )
 
 app.include_router(filter_page)
+app.include_router(graph_visualize_page)
 app.include_router(ingest_page)
 app.include_router(home_router)
 app.include_router(dataset_router)

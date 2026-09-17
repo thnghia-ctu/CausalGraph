@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Khám phá đồ thị{% endblock %}
+
+{% block content %}
+    <div class="container-fluid px-0">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-5">
+            <div>
+                <div class="text-uppercase text-secondary small fw-semibold mb-2">Pipeline / Đồ thị</div>
+                <h1 class="display-6 fw-semibold mb-2">Khám phá đồ thị</h1>
+                <p class="text-secondary mb-0">Điều chỉnh cách gom concept và hiển thị các cạnh trong đồ thị.</p>
+            </div>
+            <span class="text-secondary small">Bước 3</span>
+        </div>
+
+        {% if not dataset %}
+            <div class="alert alert-warning border-0 rounded-3" role="alert">
+                <div class="fw-semibold mb-1">Chưa chọn tập dữ liệu</div>
+                <div class="small">Hãy quay lại danh sách để chọn một tập dữ liệu trước khi khám phá đồ thị.</div>
+                <a href="/" class="btn btn-sm btn-warning mt-3">Quay lại bộ dữ liệu</a>
+            </div>
+        {% else %}
+            <section class="bg-light rounded-3 px-4 py-3 mb-4">
+                <div class="text-uppercase text-secondary small fw-semibold mb-1">Tập dữ liệu</div>
+                <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2">
+                    <h2 class="h5 mb-0">{{ selected_dataset_name }}</h2>
+                    <span class="text-secondary small">ID: {{ selected_data_id }}</span>
+                </div>
+            </section>
+
+            <div class="row g-4 align-items-start">
+                <div class="col-xl-3 col-lg-4">
+                    <section class="card border rounded-3">
+                        <div class="card-body p-4">
+                            <div class="mb-4">
+                                <div class="text-uppercase text-secondary small fw-semibold mb-2">Bộ điều khiển</div>
+                                <h2 class="h5 fw-semibold mb-1">Tham số đồ thị</h2>
+                                <p class="text-secondary small mb-0">Cập nhật vùng hiển thị mà không tải lại trang.</p>
+                            </div>
+
+                            <form
+                                id="graph-config-form"
+                                hx-get="/graph/visualization"
+                                hx-target="#graph-visualization"
+                                hx-swap="outerHTML"
+                                hx-indicator="#graph-loading"
+                            >
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <label for="distance-threshold" class="form-label fw-semibold mb-0">Ngưỡng gom nhóm</label>
+                                        <output id="distance-threshold-value" class="fw-semibold" for="distance-threshold">{{ "%.2f"|format(distance_threshold) }}</output>
+                                    </div>
+                                    <input id="distance-threshold" name="distance_threshold" type="range" class="form-range" min="0" max="1" step="0.01" value="{{ distance_threshold }}" aria-describedby="threshold-help"/>
+                                    <div class="d-flex justify-content-between text-muted small"><span>Chặt</span><span>Rộng</span></div>
+                                    <div id="threshold-help" class="form-text">Giá trị cao hơn gộp các concept tương đồng rộng hơn.</div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="min-edge-count" class="form-label fw-semibold">Lọc cạnh</label>
+                                    <select id="min-edge-count" name="min_edge_count" class="form-select">
+                                        <option value="1" {% if min_edge_count == 1 %}selected{% endif %}>Từ 1 câu nguồn</option>
+                                        <option value="2" {% if min_edge_count == 2 %}selected{% endif %}>Từ 2 câu nguồn</option>
+                                        <option value="3" {% if min_edge_count == 3 %}selected{% endif %}>Từ 3 câu nguồn</option>
+                                        <option value="5" {% if min_edge_count == 5 %}selected{% endif %}>Từ 5 câu nguồn</option>
+                                    </select>
+                                    <div class="form-text">Chỉ giữ cạnh có đủ số câu nguồn độc lập.</div>
+                                </div>
+
+                                <button type="submit" class="btn btn-dark w-100">
+                                    Cập nhật đồ thị
+                                    <span id="graph-loading" class="htmx-indicator spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>
+                                </button>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="col-xl-9 col-lg-8">
+                    {% include "_graph_visualization.html" %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const thresholdInput = document.getElementById("distance-threshold");
+        const thresholdValue = document.getElementById("distance-threshold-value");
+
+        if (thresholdInput && thresholdValue) {
+            thresholdInput.addEventListener("input", () => {
+                thresholdValue.textContent = Number(thresholdInput.value).toFixed(2);
+            });
+        }
+    </script>
+{% endblock %}

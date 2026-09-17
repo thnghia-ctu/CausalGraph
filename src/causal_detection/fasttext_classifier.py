@@ -5,8 +5,8 @@ import fasttext
 import numpy as np
 from underthesea import word_tokenize
 
-from configs.config import CAUSAL_FASTTEXT_MODEL_PATH
-from src.utils.hub import push_file_to_hub
+from configs.config import CAUSAL_FASTTEXT_HF_REPO_ID, CAUSAL_FASTTEXT_MODEL_PATH
+from src.utils.hub import push_file_to_hub, resolve_hub_file
 
 _LABEL_PREFIX = "__label__"
 
@@ -61,7 +61,12 @@ class FastTextCausalClassifier:
 
     @classmethod
     def load(cls, path=CAUSAL_FASTTEXT_MODEL_PATH) -> "FastTextCausalClassifier":
-        model = fasttext.load_model(str(path))
+        model_path = resolve_hub_file(
+            CAUSAL_FASTTEXT_HF_REPO_ID,
+            "causal_classifier_fasttext.bin",
+            path,
+        )
+        model = fasttext.load_model(str(model_path))
         classes = sorted(
             label[len(_LABEL_PREFIX):] for label in model.get_labels()
         )
