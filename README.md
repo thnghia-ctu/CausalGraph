@@ -37,6 +37,13 @@ which java       # Linux/macOS
 where java       # Windows
 ```
 
+## Khởi động hệ thống
+```bash
+uvicorn app.main:app --reload
+hoặc
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
 ## Quy trình xử lý dữ liệu
 
 ### 1. Thu thập link bài viết
